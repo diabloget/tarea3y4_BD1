@@ -1,0 +1,8 @@
+# Gemfile
+source 'https://rubygems.org'
+
+gem 'sinatra', '~> 4.2.1'
+gem 'sinatra-contrib', '~> 4.2.1'
+gem 'tiny_tds', '~> 2.1.5'
+gem 'puma', '~> 6.4'
+gem 'rackup', '~> 2.1'

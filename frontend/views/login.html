@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Acceso — Gestión de Vacaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
+        rel="stylesheet" />
+    <style>
+        :root {
+            --bg: #f5f4f0;
+            --surface: #ffffff;
+            --border: #e2e0da;
+            --text: #1a1916;
+            --muted: #8a8880;
+            --accent: #2d5a4e;
+            --accent-h: #234840;
+            --error: #9b3a3a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            padding: 1rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 3rem 2.5rem 2.75rem;
+            box-shadow: 0 2px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        .brand {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.7rem;
+            color: var(--accent);
+            margin-bottom: 0.2rem;
+            letter-spacing: -0.01em;
+        }
+
+        .tagline {
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-weight: 300;
+            margin-bottom: 2.5rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-bottom: 1.1rem;
+        }
+
+        label {
+            font-size: 0.68rem;
+            font-weight: 500;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        input {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            padding: 0.65rem 0.85rem;
+            outline: none;
+            width: 100%;
+            transition: border-color 0.15s;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            padding: 0.75rem;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background 0.15s;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-h);
+        }
+
+        .login-error {
+            display: none;
+            margin-top: 1rem;
+            font-size: 0.82rem;
+            color: var(--error);
+            padding: 0.6rem 0.75rem;
+            border: 1px solid #e8c5c5;
+            background: #fdf0f0;
+        }
+
+        .corner-link {
+            position: absolute;
+            bottom: 1.6rem;
+            right: 1rem;
+            font-size: 0.68rem;
+            color: var(--muted);
+            text-decoration: none;
+            letter-spacing: 0.04em;
+            border-bottom: 1px solid transparent;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        .corner-link:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div class="card">
+            <div class="brand">Vacaciones (TAREA 2)</div>
+            <div class="tagline">Sistema de gestión de personal</div>
+            <form method="POST" action="/login">
+                <div class="field">
+                    <label>Usuario</label>
+                    <input type="text" name="username" required autofocus />
+                </div>
+                <div class="field">
+                    <label>Contraseña</label>
+                    <input type="password" name="password" required />
+                </div>
+                <button class="btn-primary" type="submit">Ingresar</button>
+            </form>
+            <p class="login-error" id="login-error">LOGIN_ERROR</p>
+        </div>
+        <a class="corner-link" href="/setup">Carga inicial </a>
+    </div>
+</body>
+
+</html>

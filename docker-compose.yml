@@ -1,0 +1,29 @@
+services:
+  db:
+    build: ./sql
+    container_name: mssql_planilla_db
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Bd1tarea!
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_planilla_data:/var/opt/mssql
+
+  backend:
+    build: ./backend
+    container_name: ruby_planilla_backend
+    command: ruby app.rb
+    volumes:
+      - ./backend:/app
+      - ./frontend:/frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - SESSION_SECRET=LaContraseñaTieneQueExcederSesentayCuatroCaracteresParaSerQueRubyLaAcepte
+
+volumes:
+  mssql_planilla_data:

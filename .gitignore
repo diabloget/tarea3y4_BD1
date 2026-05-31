@@ -1,0 +1,10 @@
+# Base de datos
+mssql_data/
+
+# Ruby
+backend/.bundle/
+backend/vendor/bundle
+
+# Logs y temporales
+*.log
+EOF
