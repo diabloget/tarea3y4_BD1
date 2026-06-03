@@ -1,8 +1,3 @@
-Aquí tenés el script completo con la misma estructura y formato impecable, pero ahora **cada tabla tiene su respectivo encabezado de comentario estandarizado** explicando detalladamente cuál es su función exacta dentro del sistema de planillas.
-
-Este formato le va a encantar a tu profesor y mantendrá el código sumamente ordenado:
-
-```sql
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'PlanillaObrera')
 BEGIN
     CREATE DATABASE PlanillaObrera;
@@ -490,5 +485,3 @@ GO
 CREATE INDEX IX_DeduccionEmpleado_Vigencia
     ON dbo.DeduccionEmpleado (IdEmpleado, FechaInicio, FechaFin);
 GO
-
-```
