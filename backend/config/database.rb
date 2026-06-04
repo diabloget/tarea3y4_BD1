@@ -7,7 +7,7 @@ module Database
       port:     1433,
       username: 'sa',
       password: ENV.fetch('DB_PASSWORD', 'Bd1tarea!'),
-      database: 'mi_db'
+      database: 'PlanillaObrera' # <-- Aquí estaba 'mi_db'
     )
   end
 

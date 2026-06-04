@@ -3,14 +3,14 @@ BEGIN
     CREATE DATABASE PlanillaObrera;
 END
 GO
- 
+
 USE PlanillaObrera;
 GO
- 
+
 -- ============================================================
 -- CATÁLOGOS (llaves NO identity, excepto Puesto)
 -- ============================================================
- 
+
 -- ============================================================
 -- TABLA: TipoDocIdentidad
 -- DESCRIPCIÓN: Catálogo estático de los tipos de documentos
@@ -23,7 +23,7 @@ CREATE TABLE dbo.TipoDocIdentidad (
     CONSTRAINT PK_TipoDocIdentidad PRIMARY KEY (Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Puesto
 -- DESCRIPCIÓN: Almacena los diferentes puestos laborales con su
@@ -38,7 +38,7 @@ CREATE TABLE dbo.Puesto (
     CONSTRAINT UQ_Puesto_Nombre UNIQUE (Nombre)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Departamento
 -- DESCRIPCIÓN: Catálogo de los departamentos u áreas operativas
@@ -51,7 +51,7 @@ CREATE TABLE dbo.Departamento (
     CONSTRAINT PK_Departamento PRIMARY KEY (Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: TipoJornada
 -- DESCRIPCIÓN: Define los tipos de turnos de trabajo existentes
@@ -66,7 +66,7 @@ CREATE TABLE dbo.TipoJornada (
     CONSTRAINT PK_TipoJornada PRIMARY KEY (Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: TipoMovimiento
 -- DESCRIPCIÓN: Catálogo que rige si un movimiento de planilla
@@ -81,7 +81,7 @@ CREATE TABLE dbo.TipoMovimiento (
     CONSTRAINT CK_TipoMovimiento_Accion CHECK (Accion IN ('+', '-'))
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: TipoDeduccion
 -- DESCRIPCIÓN: Configura las deducciones (CCSS, renta, etc.),
@@ -100,10 +100,10 @@ CREATE TABLE dbo.TipoDeduccion (
         FOREIGN KEY (IdTipoMovimiento) REFERENCES dbo.TipoMovimiento(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: TipoEvento
--- DESCRIPCIÓN: Catálogo con la clasificación de eventos para el 
+-- DESCRIPCIÓN: Catálogo con la clasificación de eventos para el
 --              control de auditoría en la bitácora del sistema.
 -- ============================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TipoEvento')
@@ -113,7 +113,7 @@ CREATE TABLE dbo.TipoEvento (
     CONSTRAINT PK_TipoEvento PRIMARY KEY (Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Feriado
 -- DESCRIPCIÓN: Registro de los días festivos del año para el
@@ -128,7 +128,7 @@ CREATE TABLE dbo.Feriado (
     CONSTRAINT UQ_Feriado_Fecha UNIQUE (Fecha)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Usuario
 -- DESCRIPCIÓN: Almacena las credenciales de acceso al sistema,
@@ -145,7 +145,7 @@ CREATE TABLE dbo.Usuario (
     CONSTRAINT CK_Usuario_Tipo     CHECK (Tipo IN ('administrador', 'empleado'))
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Empleado
 -- DESCRIPCIÓN: Contiene la información maestro y personal de los
@@ -175,7 +175,7 @@ CREATE TABLE dbo.Empleado (
         FOREIGN KEY (IdUsuario)       REFERENCES dbo.Usuario(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: DeduccionEmpleado
 -- DESCRIPCIÓN: Vincula de forma histórica las deducciones voluntarias
@@ -196,7 +196,7 @@ CREATE TABLE dbo.DeduccionEmpleado (
         FOREIGN KEY (IdTipoDeduccion) REFERENCES dbo.TipoDeduccion(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Mes
 -- DESCRIPCIÓN: Delimita los rangos de fechas de los meses comerciales
@@ -211,10 +211,10 @@ CREATE TABLE dbo.Mes (
     CONSTRAINT PK_Mes PRIMARY KEY (Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Semana
--- DESCRIPCIÓN: Divide los meses en periodos semanales de pago, 
+-- DESCRIPCIÓN: Divide los meses en periodos semanales de pago,
 --              que es la base operativa de la planilla obrera.
 -- ============================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Semana')
@@ -227,7 +227,7 @@ CREATE TABLE dbo.Semana (
     CONSTRAINT FK_Semana_Mes FOREIGN KEY (IdMes) REFERENCES dbo.Mes(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: HorarioJornada
 -- DESCRIPCIÓN: Asocia la jornada que el empleado tiene asignada
@@ -249,7 +249,7 @@ CREATE TABLE dbo.HorarioJornada (
         FOREIGN KEY (IdTipoJornada) REFERENCES dbo.TipoJornada(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: MarcaAsistencia
 -- DESCRIPCIÓN: Captura los timbrajes reales de entrada y salida
@@ -270,7 +270,7 @@ CREATE TABLE dbo.MarcaAsistencia (
         FOREIGN KEY (IdHorarioJornada) REFERENCES dbo.HorarioJornada(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: PlanillaSemanal
 -- DESCRIPCIÓN: Acumula los cálculos procesados de salarios brutos,
@@ -295,10 +295,10 @@ CREATE TABLE dbo.PlanillaSemanal (
         FOREIGN KEY (IdSemana)   REFERENCES dbo.Semana(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: PlanillaMensual
--- DESCRIPCIÓN: Consolida la sumatoria de ingresos y egresos de un 
+-- DESCRIPCIÓN: Consolida la sumatoria de ingresos y egresos de un
 --              empleado a lo largo de un mes para reportes estatales.
 -- ============================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PlanillaMensual')
@@ -317,7 +317,7 @@ CREATE TABLE dbo.PlanillaMensual (
         FOREIGN KEY (IdMes)      REFERENCES dbo.Mes(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: DeduccionXMes
 -- DESCRIPCIÓN: Detalla el desglose total cobrado por cada tipo
@@ -337,7 +337,7 @@ CREATE TABLE dbo.DeduccionXMes (
         FOREIGN KEY (IdTipoDeduccion)   REFERENCES dbo.TipoDeduccion(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: Comprobante
 -- DESCRIPCIÓN: Encabezado de los entregables o recibos oficiales
@@ -354,7 +354,7 @@ CREATE TABLE dbo.Comprobante (
         FOREIGN KEY (IdPlanillaSemanal) REFERENCES dbo.PlanillaSemanal(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: ComprobanteHora
 -- DESCRIPCIÓN: Tabla intermedia que asocia las marcas de asistencia
@@ -373,10 +373,10 @@ CREATE TABLE dbo.ComprobanteHora (
         FOREIGN KEY (IdMarcaAsistencia) REFERENCES dbo.MarcaAsistencia(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: MovPlanilla
--- DESCRIPCIÓN: Libro de movimientos detallados por comprobante, 
+-- DESCRIPCIÓN: Libro de movimientos detallados por comprobante,
 --              calculando saldos brutos acumulados secuenciales.
 -- ============================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MovPlanilla')
@@ -393,10 +393,10 @@ CREATE TABLE dbo.MovPlanilla (
         FOREIGN KEY (IdTipoMovimiento) REFERENCES dbo.TipoMovimiento(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: BitacoraEvento
--- DESCRIPCIÓN: Registro de seguridad y auditoría de transacciones, 
+-- DESCRIPCIÓN: Registro de seguridad y auditoría de transacciones,
 --              almacenando usuarios, IPs y marcas de tiempo.
 -- ============================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BitacoraEvento')
@@ -414,10 +414,10 @@ CREATE TABLE dbo.BitacoraEvento (
         FOREIGN KEY (IdUsuario)    REFERENCES dbo.Usuario(Id)
 );
 GO
- 
+
 -- ============================================================
 -- TABLA: DBError
--- DESCRIPCIÓN: Captura excepciones controladas en bloques TRY/CATCH 
+-- DESCRIPCIÓN: Captura excepciones controladas en bloques TRY/CATCH
 --              dentro de los Stored Procedures para depuración.
 -- ============================================================
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DBError')
@@ -484,4 +484,46 @@ GO
 
 CREATE INDEX IX_DeduccionEmpleado_Vigencia
     ON dbo.DeduccionEmpleado (IdEmpleado, FechaInicio, FechaFin);
+GO
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- DATOS DE PRUEBA (SEED) PARA PROBAR EL LOGIN
+
+
+USE PlanillaObrera;
+GO
+
+-- TipoEvento mínimo necesario para que la bitácora funcione en login
+IF NOT EXISTS (SELECT 1 FROM dbo.TipoEvento WHERE Id = 1)
+  INSERT INTO dbo.TipoEvento (Id, Nombre) VALUES (1, 'Login exitoso');
+IF NOT EXISTS (SELECT 1 FROM dbo.TipoEvento WHERE Id = 2)
+  INSERT INTO dbo.TipoEvento (Id, Nombre) VALUES (2, 'Login fallido');
+IF NOT EXISTS (SELECT 1 FROM dbo.TipoEvento WHERE Id = 3)
+  INSERT INTO dbo.TipoEvento (Id, Nombre) VALUES (3, 'Login deshabilitado');
+IF NOT EXISTS (SELECT 1 FROM dbo.TipoEvento WHERE Id = 4)
+  INSERT INTO dbo.TipoEvento (Id, Nombre) VALUES (4, 'Logout');
+GO
+
+-- Usuarios de prueba
+-- Id es IDENTITY así que no se especifica, y la columna es PasswordHash no Password
+IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE Username = 'admin')
+  INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
+  VALUES ('admin', 'admin123', 'administrador');
+GO
+
+IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE Username = 'obrero')
+  INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
+  VALUES ('obrero', 'obrero123', 'empleado');
 GO

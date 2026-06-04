@@ -13,18 +13,20 @@ class Usuario
 
       codigo  = nil
       usuario = nil
-      result  = db.execute(sql)
-      # Aqui el StoreProcedure deberia de devolver el SELECT de usuarios y un output
-      # Entonces es nada mas iterar hasta que se encuentre el que tiene codigo
-      result.each(as: :hash) do |fila|
-        if fila.key?('Codigo')
-          codigo = fila['Codigo'].to_i
-        elsif fila.key?('Id')
-          usuario = fila
+
+      db.execute(sql).each do |row|
+        if row.key?('Codigo')
+          codigo = row['Codigo'].to_i
+        elsif row.key?('Id')
+          usuario = row
         end
       end
+
       { codigo: codigo, usuario: usuario }
     end
+  rescue => e
+    puts "Error en Usuario.login: #{e.message}"
+    { codigo: 50000, usuario: nil }
   end
 
   def self.logout(id_usuario:, ip:)
@@ -37,5 +39,7 @@ class Usuario
         "  @outResultCode = @outResultCode OUTPUT;"
       ).do
     end
+  rescue => e
+    puts "Error en Usuario.logout: #{e.message}"
   end
 end
