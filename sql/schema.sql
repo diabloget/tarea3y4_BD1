@@ -462,28 +462,28 @@ GO
 -- ÍNDICES
 -- ============================================================
 
-CREATE INDEX IX_Empleado_Nombre
-    ON dbo.Empleado (Nombre);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Empleado_Nombre' AND object_id = OBJECT_ID('dbo.Empleado'))
+    CREATE INDEX IX_Empleado_Nombre ON dbo.Empleado (Nombre);
 GO
 
-CREATE INDEX IX_MarcaAsistencia_Empleado_Fecha
-    ON dbo.MarcaAsistencia (IdEmpleado, Fecha);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_MarcaAsistencia_Empleado_Fecha' AND object_id = OBJECT_ID('dbo.MarcaAsistencia'))
+    CREATE INDEX IX_MarcaAsistencia_Empleado_Fecha ON dbo.MarcaAsistencia (IdEmpleado, Fecha);
 GO
 
-CREATE INDEX IX_PlanillaSemanal_Semana
-    ON dbo.PlanillaSemanal (IdSemana);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PlanillaSemanal_Semana' AND object_id = OBJECT_ID('dbo.PlanillaSemanal'))
+    CREATE INDEX IX_PlanillaSemanal_Semana ON dbo.PlanillaSemanal (IdSemana);
 GO
 
-CREATE INDEX IX_PlanillaMensual_Mes
-    ON dbo.PlanillaMensual (IdMes);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_PlanillaMensual_Mes' AND object_id = OBJECT_ID('dbo.PlanillaMensual'))
+    CREATE INDEX IX_PlanillaMensual_Mes ON dbo.PlanillaMensual (IdMes);
 GO
 
-CREATE INDEX IX_BitacoraEvento_Usuario_FechaHora
-    ON dbo.BitacoraEvento (IdUsuario, FechaHora DESC);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_BitacoraEvento_Usuario_FechaHora' AND object_id = OBJECT_ID('dbo.BitacoraEvento'))
+    CREATE INDEX IX_BitacoraEvento_Usuario_FechaHora ON dbo.BitacoraEvento (IdUsuario, FechaHora DESC);
 GO
 
-CREATE INDEX IX_DeduccionEmpleado_Vigencia
-    ON dbo.DeduccionEmpleado (IdEmpleado, FechaInicio, FechaFin);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_DeduccionEmpleado_Vigencia' AND object_id = OBJECT_ID('dbo.DeduccionEmpleado'))
+    CREATE INDEX IX_DeduccionEmpleado_Vigencia ON dbo.DeduccionEmpleado (IdEmpleado, FechaInicio, FechaFin);
 GO
 
 

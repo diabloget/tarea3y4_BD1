@@ -13,8 +13,8 @@ for i in {1..30}; do
   sleep 2
 done
 
-# Aqui se ponen los archivos sp y demas
-for script in schema.sql sp_login.sql sp_logout.sql sp_obtener_error.sql; do
+# aqui se ponen los sp también
+for script in schema.sql sp_login.sql sp_logout.sql sp_obtener_error.sql sp_listar_empleado.sql sp_insertar_empleado.sql sp_procesar_operaciones_xml.sql sp_cargar_datos_xml.sql; do
   if [ -f "/db-init/$script" ]; then
     /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -i /db-init/$script
     echo "$script ejecutado."

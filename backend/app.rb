@@ -39,5 +39,8 @@ get '/' do
   File.read("#{VIEWS}/index.html")
 end
 
+# Modelos
+require_relative 'models/empleado'
 # Controladores
 require_relative 'controllers/sesion_controller'
+require_relative 'controllers/empleados_controller'

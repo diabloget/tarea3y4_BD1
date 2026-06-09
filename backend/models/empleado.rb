@@ -1,19 +1,32 @@
 class Empleado
-  attr_accessor :id, :tipo_doc, :valor_doc, :nombre, :fecha_contratacion, :puesto, :departamento, :activo
+  attr_accessor :valor_doc, :nombre, :puesto
 
   def initialize(attributes = {})
-    @id = attributes[:id]
-    @tipo_doc = attributes[:tipo_doc]
     @valor_doc = attributes[:valor_doc]
-    @nombre = attributes[:nombre]
-    @fecha_contratacion = attributes[:fecha_contratacion]
-    @puesto = attributes[:puesto]
-    @departamento = attributes[:departamento]
-    @activo = attributes[:activo]
+    @nombre    = attributes[:nombre]
+    @puesto    = attributes[:puesto]
   end
 
-  # Molde vacío: se implementa una vez haya un dbo.sp_listar_empleados en la base de datos
-  def self.todos
-    []
+  def self.listar(filtro = nil)
+    # Usamos execute_sp (sin salida)
+    rows = Database.execute_sp(:sp_listar_empleado, { FiltroNombre: filtro })
+
+    rows.map do |row|
+      Empleado.new(
+        valor_doc: row['ValorDocumento'],
+        nombre:    row['NombreEmpleado'] || row['Nombre'],
+        puesto:    row['Puesto']
+      )
+    end
+  end
+
+  def self.procesar_xml(xml_string)
+    result = Database.execute_xml_sp(:sp_procesar_operaciones_xml, xml_string)
+    result['Resultado'].to_i
+  end
+
+  def self.procesar_datos_xml(xml_string)
+    result = Database.execute_xml_sp(:sp_cargar_datos_xml, xml_string)
+    result['Resultado'].to_i
   end
 end

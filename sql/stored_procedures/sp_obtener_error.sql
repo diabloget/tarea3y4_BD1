@@ -1,29 +1,23 @@
-USE mi_db;
+USE PlanillaObrera;
 GO
 
-SET QUOTED_IDENTIFIER ON;
+IF OBJECT_ID('dbo.sp_obtener_error', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_obtener_error;
 GO
 
-CREATE OR ALTER PROCEDURE dbo.sp_obtener_error
-  @inCodigo      INT
-, @outResultCode INT OUTPUT
+CREATE PROCEDURE dbo.sp_obtener_error
+    @inCodigo INT
 AS
 BEGIN
-  SET NOCOUNT ON;
+    SET NOCOUNT ON;
 
-  BEGIN TRY
-    SELECT E.Descripcion
-    FROM   dbo.Error E
-    WHERE  (E.Codigo = @inCodigo);
-
-    SET @outResultCode = 0;
-  END TRY
-  BEGIN CATCH
-    SET @outResultCode = ERROR_NUMBER() + 50000;
-    INSERT INTO dbo.DBError (UserName, Number, State, Severity, Line, [Procedure], Message, DateTime)
-    VALUES (SUSER_SNAME(), ERROR_NUMBER(), ERROR_STATE(), ERROR_SEVERITY(),
-            ERROR_LINE(), ERROR_PROCEDURE(), ERROR_MESSAGE(), GETDATE());
-    THROW;
-  END CATCH
+    SELECT
+        Id,
+        Mensaje,
+        Severidad,
+        Estado,
+        FechaHora
+    FROM dbo.DBError
+    WHERE Id = @inCodigo;
 END;
 GO
