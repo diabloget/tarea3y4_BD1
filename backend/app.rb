@@ -39,6 +39,15 @@ get '/' do
   File.read("#{VIEWS}/index.html")
 end
 
+
+# === AGREGA ESTA NUEVA RUTA AQUÍ ===
+get '/admin/empleados' do
+  require_login
+  no_cache
+  File.read("#{VIEWS}/admin_empleados.html")
+end
+
+
 # Modelos
 require_relative 'models/empleado'
 # Controladores

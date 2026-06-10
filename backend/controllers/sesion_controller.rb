@@ -17,12 +17,20 @@ post '/login' do
 
     if codigo == 0 && usuario
       # LOGIN EXITOSO
-      session[:usuario]      = usuario['Username']
+      session[:usuario]    = usuario['Username']
       session[:usuario_id]   = usuario['Id']
       session[:login_error]  = nil
 
-      # Redirección especial para que HTMX cambie toda la página
-      headers 'HX-Redirect' => '/'
+      # Validación estricta del tipo basado en el retorno exacto de la BD
+      if usuario['Tipo'] == 'administrador'
+        headers 'HX-Redirect' => '/admin/empleados'
+      elsif usuario['Tipo'] == 'empleado'
+        headers 'HX-Redirect' => '/'
+      else
+        # En caso de que venga otro tipo no mapeado, lo mandamos al index por seguridad
+        headers 'HX-Redirect' => '/'
+      end
+
       status 200
       body ""
     elsif codigo == 50003
