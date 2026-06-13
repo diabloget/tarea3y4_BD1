@@ -56,3 +56,35 @@ post '/cargar-xml' do
     "<span style='color: #9b3a3a;'>No se recibió ningún archivo válido.</span>"
   end
 end
+
+# Ruta para obtener el desglose de planillas semanales calculado
+get '/admin/planillas' do
+  content_type :html
+  begin
+    resultado = []
+    Database.query do |db|
+      db.execute("EXEC dbo.sp_listar_planillas_semanales").each do |row|
+        resultado << row
+      end
+    end
+
+    if resultado.empty?
+      return "<tr class='empty-row'><td colspan='6'>No hay datos.</td></tr>"
+    end
+
+    # Tu lógica de renderizado...
+    resultado.map do |p|
+      "<tr>
+        <td>#{p['EmpleadoNombre']}<br><small>Doc: #{p['EmpleadoDocumento']}</small></td>
+        <td>Semana #{p['SemanaId']}<br><small>#{p['FechaInicio']} al #{p['FechaFin']}</small></td>
+        <td class='text-center'>#{p['HorasOrdinarias'].to_i}</td>
+        <td class='text-center'>#{p['HorasExtraNormal'].to_i}</td>
+        <td class='text-center'>#{p['HorasExtraDoble'].to_i}</td>
+        <td class='text-right'>¢#{sprintf('%.2f', p['SalarioBruto'].to_f)}</td>
+      </tr>"
+    end.join("\n")
+
+  rescue => e
+    "<tr><td colspan='6' style='color: red;'>ERROR: #{e.message}</td></tr>"
+  end
+end

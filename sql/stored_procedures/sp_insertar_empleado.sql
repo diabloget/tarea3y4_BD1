@@ -11,6 +11,8 @@ CREATE PROCEDURE dbo.sp_insertar_empleado
     @NombrePuesto      VARCHAR(100),
     @CuentaBancaria    VARCHAR(100),
     @FechaContratacion DATE,
+    @Username          VARCHAR(64) = NULL,
+    @Password          VARCHAR(128) = NULL,
     @OutRespuesta      INT OUTPUT
 AS
 BEGIN
@@ -19,6 +21,10 @@ BEGIN
     DECLARE @IdUsuario       INT;
     DECLARE @IdDepartamento  INT;
     DECLARE @IdTipoDocumento INT;
+
+    -- Manejo del fallback para credenciales (si vienen vacíos o NULL, usan el documento)
+    DECLARE @RealUsername VARCHAR(64) = ISNULL(NULLIF(@Username, ''), @ValorDocumento);
+    DECLARE @RealPassword VARCHAR(128) = ISNULL(NULLIF(@Password, ''), @ValorDocumento);
 
     IF EXISTS (SELECT 1 FROM dbo.Empleado WHERE ValorDocumento = @ValorDocumento)
     BEGIN
@@ -45,8 +51,9 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
+        -- Se insertan las credenciales extraídas
         INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
-        VALUES (@ValorDocumento, @ValorDocumento, 'empleado');
+        VALUES (@RealUsername, @RealPassword, 'empleado');
 
         SET @IdUsuario = SCOPE_IDENTITY();
 

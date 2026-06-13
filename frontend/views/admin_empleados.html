@@ -11,7 +11,6 @@
         />
         <script src="https://unpkg.com/htmx.org@1.9.10"></script>
         <style>
-            /* Todo tu CSS original se mantiene exactamente igual */
             :root {
                 --bg: #f5f4f0;
                 --surface: #ffffff;
@@ -99,7 +98,7 @@
             main {
                 max-width: 1000px;
                 margin: 2.5rem auto;
-                padding: 0 2rem;
+                padding: 0 2rem 5rem 2rem;
                 display: grid;
                 gap: 2.5rem;
             }
@@ -257,9 +256,18 @@
                 display: inline;
             }
 
-            #resultado-xml {
+            #resultado-xml,
+            #resultado-datos {
                 margin-top: 1rem;
                 font-size: 0.85rem;
+            }
+
+            /* Clases utilitarias adicionales para la tabla de planillas */
+            .text-center {
+                text-align: center;
+            }
+            .text-right {
+                text-align: right;
             }
         </style>
     </head>
@@ -305,10 +313,37 @@
                             >
                         </div>
                     </form>
-                    <div
-                        id="resultado-datos"
-                        style="margin-top: 1rem; font-size: 0.85rem"
-                    ></div>
+                    <div id="resultado-datos"></div>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-label">Importar Operaciones XML</div>
+                <div class="upload-card">
+                    <form
+                        hx-post="/cargar-xml"
+                        hx-encoding="multipart/form-data"
+                        hx-target="#resultado-xml"
+                        hx-indicator="#indicador-xml"
+                        hx-on::after-request="if(event.detail.successful) { htmx.trigger('#tabla-body', 'empleadosActualizado'); htmx.trigger('#tabla-planillas-body', 'planillasActualizado'); }"
+                    >
+                        <div class="upload-row">
+                            <input
+                                type="file"
+                                name="archivo_xml"
+                                accept=".xml"
+                                required
+                            />
+                            <button class="btn-upload" type="submit">
+                                Ejecutar Carga
+                            </button>
+                            <span class="htmx-indicator" id="indicador-xml"
+                                >Procesando e ingresando a base de
+                                datos...</span
+                            >
+                        </div>
+                    </form>
+                    <div id="resultado-xml"></div>
                 </div>
             </section>
 
@@ -358,32 +393,45 @@
             </section>
 
             <section>
-                <div class="section-label">Importar Operaciones XML</div>
-                <div class="upload-card">
-                    <form
-                        hx-post="/cargar-xml"
-                        hx-encoding="multipart/form-data"
-                        hx-target="#resultado-xml"
-                        hx-indicator=".htmx-indicator"
-                        hx-on::after-request="if(event.detail.successful) htmx.trigger('#tabla-body', 'empleadosActualizado')"
+                <div
+                    class="section-label"
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    "
+                >
+                    <span>Planillas Semanales Calculadas</span>
+                    <button
+                        class="btn-sm btn-outline"
+                        hx-get="/admin/planillas"
+                        hx-target="#tabla-planillas-body"
                     >
-                        <div class="upload-row">
-                            <input
-                                type="file"
-                                name="archivo_xml"
-                                accept=".xml"
-                                required
-                            />
-                            <button class="btn-upload" type="submit">
-                                Ejecutar Carga
-                            </button>
-                            <span class="htmx-indicator"
-                                >Procesando e ingresando a base de
-                                datos...</span
-                            >
-                        </div>
-                    </form>
-                    <div id="resultado-xml"></div>
+                        Refrescar
+                    </button>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Empleado</th>
+                                <th>Período / Semana</th>
+                                <th class="text-center">Horas Ord.</th>
+                                <th class="text-center">Extra Norm.</th>
+                                <th class="text-center">Extra Dob.</th>
+                                <th class="text-right">Salario Bruto</th>
+                            </tr>
+                        </thead>
+                        <tbody
+                            id="tabla-planillas-body"
+                            hx-get="/admin/planillas"
+                            hx-trigger="load, planillasActualizado from:body"
+                        >
+                            <tr class="empty-row">
+                                <td colspan="6">Cargando planillas...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </main>

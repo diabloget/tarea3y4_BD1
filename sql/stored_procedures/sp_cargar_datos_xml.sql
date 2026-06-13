@@ -21,15 +21,15 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- ── TipoDocIdentidad (seed mínimo) ──────────────────────
+        -- TipoDocIdentidad
         IF NOT EXISTS (SELECT 1 FROM dbo.TipoDocIdentidad WHERE Id = 1)
             INSERT INTO dbo.TipoDocIdentidad (Id, Nombre) VALUES (1, 'Cédula');
 
-        -- ── Departamento (seed mínimo) ──────────────────────────
+        -- Departamento
         IF NOT EXISTS (SELECT 1 FROM dbo.Departamento WHERE Id = 1)
             INSERT INTO dbo.Departamento (Id, Nombre) VALUES (1, 'Producción y Operaciones');
 
-        -- ── TipoEvento ──────────────────────────────────────────
+        -- TipoEvento
         INSERT INTO dbo.TipoEvento (Id, Nombre)
         SELECT
             T.Item.value('@Id',     'INT'),
@@ -40,7 +40,7 @@ BEGIN
             WHERE Id = T.Item.value('@Id', 'INT')
         );
 
-        -- ── Feriado ─────────────────────────────────────────────
+        -- Feriado
         INSERT INTO dbo.Feriado (Id, Nombre, Fecha)
         SELECT
             T.Item.value('@Id',     'INT'),
@@ -52,7 +52,7 @@ BEGIN
             WHERE Id = T.Item.value('@Id', 'INT')
         );
 
-        -- ── TipoMovimiento ──────────────────────────────────────
+        -- TipoMovimiento
         INSERT INTO dbo.TipoMovimiento (Id, Nombre, Accion)
         SELECT
             T.Item.value('@Id',     'INT'),
@@ -76,14 +76,14 @@ BEGIN
             T.Item.value('@Nombre',       'VARCHAR(100)'),
             ISNULL(T.Item.value('@EsObligatoria','BIT'), 0),
             ISNULL(T.Item.value('@EsPorcentual', 'BIT'), 0),
-            ISNULL(T.Item.value('@Valor',        'DECIMAL(10,4)'), 0), -- <-- BLINDAJE CONTRA NULL
+            ISNULL(T.Item.value('@Valor',        'DECIMAL(10,4)'), 0), -- Por si NULL
             TM.Id
         FROM @XmlData.nodes('/Datos/TiposDeduccion/TipoDeduccion') AS T(Item)
         INNER JOIN dbo.TipoMovimiento TM
             ON TM.Nombre = T.Item.value('@TipoMovimiento', 'VARCHAR(100)')
         WHERE NOT EXISTS (SELECT 1 FROM dbo.TipoDeduccion WHERE Id = T.Item.value('@Id', 'INT'));
 
-        -- ── Puesto ──────────────────────────────────────────────
+        -- Puesto
         INSERT INTO dbo.Puesto (Nombre, SalarioXHora)
         SELECT
             T.Item.value('@Nombre',       'VARCHAR(100)'),
@@ -94,7 +94,7 @@ BEGIN
             WHERE Nombre = T.Item.value('@Nombre', 'VARCHAR(100)')
         );
 
-        -- ── TipoJornada ─────────────────────────────────────────
+        -- TipoJornada
         INSERT INTO dbo.TipoJornada (Id, Nombre, HoraInicio, HoraFin)
         SELECT
             T.Item.value('@Id',         'INT'),
@@ -107,7 +107,7 @@ BEGIN
             WHERE Id = T.Item.value('@Id', 'INT')
         );
 
-        -- ── Usuarios (Tipo 1=administrador, 2=empleado en XML) ──
+        -- Usuarios
         INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
         SELECT
             T.Item.value('@Username',     'VARCHAR(100)'),

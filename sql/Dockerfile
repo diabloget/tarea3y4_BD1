@@ -15,6 +15,7 @@ COPY stored_procedures/sp_insertar_empleado.sql       ./sp_insertar_empleado.sql
 COPY stored_procedures/sp_obtener_error.sql           ./sp_obtener_error.sql
 COPY stored_procedures/sp_procesar_operaciones_xml.sql ./sp_procesar_operaciones_xml.sql
 COPY stored_procedures/sp_cargar_datos_xml.sql        ./sp_cargar_datos_xml.sql
+COPY stored_procedures/sp_listar_planillas_semanales.sql ./sp_listar_planillas_semanales.sql
 COPY entrypoint.sh                                    ./entrypoint.sh
 
 RUN dos2unix entrypoint.sh schema.sql \
@@ -24,6 +25,7 @@ RUN dos2unix entrypoint.sh schema.sql \
     sp_obtener_error.sql \
     sp_procesar_operaciones_xml.sql \
     sp_cargar_datos_xml.sql \
+    sp_listar_planillas_semanales.sql \
     && chmod +x entrypoint.sh \
     && chmod 644 schema.sql \
     sp_login.sql sp_logout.sql \
@@ -31,8 +33,7 @@ RUN dos2unix entrypoint.sh schema.sql \
     sp_insertar_empleado.sql \
     sp_obtener_error.sql \
     sp_procesar_operaciones_xml.sql \
-    sp_cargar_datos_xml.sql
-
-USER mssql
+    sp_cargar_datos_xml.sql \
+    sp_listar_planillas_semanales.sql
 
 ENTRYPOINT ["/db-init/entrypoint.sh"]

@@ -431,6 +431,27 @@ CREATE TABLE dbo.DBError (
 );
 GO
 
+
+-- ============================================================
+-- TABLA: MovimientoAsistencia
+-- DESCRIPCIÓN: Es una tabla
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MovimientoAsistencia')
+BEGIN
+    CREATE TABLE dbo.MovimientoAsistencia (
+        Id                INT           NOT NULL IDENTITY(1,1),
+        IdMarcaAsistencia INT           NOT NULL,
+        IdTipoMovimiento  INT           NOT NULL,
+        CantidadHoras     DECIMAL(8,2)  NOT NULL,
+        Monto             DECIMAL(14,2) NOT NULL,
+        CONSTRAINT PK_MovimientoAsistencia PRIMARY KEY (Id),
+        CONSTRAINT FK_MovAsis_Marca
+            FOREIGN KEY (IdMarcaAsistencia) REFERENCES dbo.MarcaAsistencia(Id),
+        CONSTRAINT FK_MovAsis_TipoMov
+            FOREIGN KEY (IdTipoMovimiento) REFERENCES dbo.TipoMovimiento(Id)
+    );
+END
+GO
+
 -- ============================================================
 -- TRIGGER
 -- ============================================================
