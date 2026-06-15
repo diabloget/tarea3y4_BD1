@@ -166,17 +166,19 @@ BEGIN
             BEGIN
                 DECLARE @FechaOp DATE = CAST(@HoraEntrada AS DATE);
 
-                -- Buscar el horario jornada de la semana correspondiente a la marca
+                -- Buscar el horario jornada de la semana correspondiente a la marca (Corregido sin ambigüedad de alias)
                 DECLARE @IdHorarioJornada INT, @IdSemanaAsis INT, @HoraFinJornada TIME;
-                SELECT TOP 1
+                
+                SELECT 
                     @IdHorarioJornada = HJ.Id,
-                    @IdSemanaAsis = S.Id,
+                    @IdSemanaAsis = HJ.IdSemana,
                     @HoraFinJornada = TJ.HoraFin
-                FROM dbo.Semana S
-                INNER JOIN dbo.HorarioJornada HJ ON HJ.IdSemana = S.Id
+                FROM dbo.HorarioJornada HJ
+                INNER JOIN dbo.Semana S ON S.Id = HJ.IdSemana
                 INNER JOIN dbo.TipoJornada TJ ON TJ.Id = HJ.IdTipoJornada
-                WHERE HJ.IdEmpleado = @IdEmpAsis AND @FechaOp BETWEEN S.FechaInicio AND S.FechaFin
-                ORDER BY S.FechaInicio DESC;
+                WHERE HJ.IdEmpleado = @IdEmpAsis 
+                  AND @FechaOp >= S.FechaInicio 
+                  AND @FechaOp <= S.FechaFin;
 
                 IF @IdHorarioJornada IS NOT NULL
                 BEGIN
@@ -236,7 +238,7 @@ BEGIN
                             END
                         END
 
-                        DECLARE @TotalGenerado DECIMAL(14,2) = @MontoOrdinario + @MontoExtra;
+                        DECLARE @TotalGenerated DECIMAL(14,2) = @MontoOrdinario + @MontoExtra;
 
                         -- 5. Generar Desglose en MovimientoAsistencia (Id=1 Ordinaria, Id=2 Extra Norm, Id=3 Extra Doble)
                         IF @CantOrdinaria > 0
@@ -257,12 +259,12 @@ BEGIN
                             INSERT INTO dbo.PlanillaSemanal
                                 (IdEmpleado, IdSemana, SalarioBruto, TotalDeducciones, SalarioNeto, HorasOrdinarias, HorasExtraNormal, HorasExtraDoble)
                             VALUES
-                                (@IdEmpAsis, @IdSemanaAsis, @TotalGenerado, 0, 0, @CantOrdinaria, @CantExtraNormal, @CantExtraDoble);
+                                (@IdEmpAsis, @IdSemanaAsis, @TotalGenerated, 0, 0, @CantOrdinaria, @CantExtraNormal, @CantExtraDoble);
                         END
                         ELSE
                         BEGIN
                             UPDATE dbo.PlanillaSemanal
-                            SET SalarioBruto = SalarioBruto + @TotalGenerado,
+                            SET SalarioBruto = SalarioBruto + @TotalGenerated,
                                 HorasOrdinarias = HorasOrdinarias + @CantOrdinaria,
                                 HorasExtraNormal = HorasExtraNormal + @CantExtraNormal,
                                 HorasExtraDoble = HorasExtraDoble + @CantExtraDoble
@@ -274,6 +276,40 @@ BEGIN
             FETCH NEXT FROM cur_asis INTO @DocAsis, @HoraEntrada, @HoraSalida;
         END
         CLOSE cur_asis; DEALLOCATE cur_asis;
+
+        -- =========================================================
+        -- NUEVO PASO 6: CALCULAR DEDUCCIONES Y SALARIO NETO
+        -- =========================================================
+        
+        -- 6.1 Actualizar Total de Deducciones (Evita completamente el Mensaje 8124 segregando fijas y porcentuales)
+        UPDATE PS
+        SET PS.TotalDeducciones = 
+            ISNULL((
+                SELECT SUM(DE.MontoFijo)
+                FROM dbo.DeduccionEmpleado DE
+                INNER JOIN dbo.TipoDeduccion TD ON DE.IdTipoDeduccion = TD.Id
+                INNER JOIN dbo.Semana S ON S.Id = PS.IdSemana
+                WHERE DE.IdEmpleado = PS.IdEmpleado
+                  AND TD.EsPorcentual = 0
+                  AND DE.FechaInicio <= S.FechaFin
+                  AND (DE.FechaFin IS NULL OR DE.FechaFin >= S.FechaInicio)
+            ), 0) 
+            + 
+            ISNULL((
+                SELECT SUM(TD.Valor) 
+                FROM dbo.DeduccionEmpleado DE
+                INNER JOIN dbo.TipoDeduccion TD ON DE.IdTipoDeduccion = TD.Id
+                INNER JOIN dbo.Semana S ON S.Id = PS.IdSemana
+                WHERE DE.IdEmpleado = PS.IdEmpleado
+                  AND TD.EsPorcentual = 1
+                  AND DE.FechaInicio <= S.FechaFin
+                  AND (DE.FechaFin IS NULL OR DE.FechaFin >= S.FechaInicio)
+            ), 0) * PS.SalarioBruto
+        FROM dbo.PlanillaSemanal PS;
+
+        -- 6.2 Calcular Salario Neto
+        UPDATE dbo.PlanillaSemanal
+        SET SalarioNeto = SalarioBruto - TotalDeducciones;
 
         COMMIT TRANSACTION;
         SET @OutRespuesta = 0;
