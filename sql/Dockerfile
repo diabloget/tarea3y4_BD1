@@ -12,6 +12,7 @@ COPY stored_procedures/sp_login.sql                   ./sp_login.sql
 COPY stored_procedures/sp_logout.sql                  ./sp_logout.sql
 COPY stored_procedures/sp_listar_empleado.sql         ./sp_listar_empleado.sql
 COPY stored_procedures/sp_insertar_empleado.sql       ./sp_insertar_empleado.sql
+COPY stored_procedures/sp_eliminar_empleado.sql       ./sp_eliminar_empleado.sql
 COPY stored_procedures/sp_obtener_error.sql           ./sp_obtener_error.sql
 COPY stored_procedures/sp_procesar_operaciones_xml.sql ./sp_procesar_operaciones_xml.sql
 COPY stored_procedures/sp_cargar_datos_xml.sql        ./sp_cargar_datos_xml.sql
@@ -22,6 +23,7 @@ RUN dos2unix entrypoint.sh schema.sql \
     sp_login.sql sp_logout.sql \
     sp_listar_empleado.sql \
     sp_insertar_empleado.sql \
+    sp_eliminar_empleado.sql \
     sp_obtener_error.sql \
     sp_procesar_operaciones_xml.sql \
     sp_cargar_datos_xml.sql \
@@ -31,6 +33,7 @@ RUN dos2unix entrypoint.sh schema.sql \
     sp_login.sql sp_logout.sql \
     sp_listar_empleado.sql \
     sp_insertar_empleado.sql \
+    sp_eliminar_empleado.sql \
     sp_obtener_error.sql \
     sp_procesar_operaciones_xml.sql \
     sp_cargar_datos_xml.sql \

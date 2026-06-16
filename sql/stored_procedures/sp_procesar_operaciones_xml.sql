@@ -60,6 +60,35 @@ BEGIN
         CLOSE cur_emp; DEALLOCATE cur_emp;
 
         -- ============================================================
+        -- 1.5 EliminarEmpleado
+        -- ============================================================
+        DECLARE @IdDocEliminar VARCHAR(50), @RespDel INT;
+
+        DECLARE cur_emp_del CURSOR LOCAL FAST_FORWARD FOR
+        SELECT
+            Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
+        FROM @XmlData.nodes('/Operaciones/FechaOperacion/EliminarEmpleado') AS T(Op);
+
+        OPEN cur_emp_del;
+        FETCH NEXT FROM cur_emp_del INTO @IdDocEliminar;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            EXEC dbo.sp_eliminar_empleado
+                @ValorDocumento = @IdDocEliminar,
+                @OutRespuesta   = @RespDel OUTPUT;
+
+            IF @RespDel IN (50001, 50008)
+            BEGIN
+                SET @OutRespuesta = @RespDel;
+                CLOSE cur_emp_del; DEALLOCATE cur_emp_del;
+                IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            FETCH NEXT FROM cur_emp_del INTO @IdDocEliminar;
+        END
+        CLOSE cur_emp_del; DEALLOCATE cur_emp_del;
+        -- ============================================================
         -- 2. AsociaEmpleadoConDeduccion
         -- ============================================================
         INSERT INTO dbo.DeduccionEmpleado (IdEmpleado, IdTipoDeduccion, MontoFijo, FechaInicio, FechaFin)

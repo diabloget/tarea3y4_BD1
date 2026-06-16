@@ -57,16 +57,14 @@ BEGIN
         SELECT
             T.Item.value('@Id',     'INT'),
             T.Item.value('@Nombre', 'VARCHAR(100)'),
-            CASE LEFT(T.Item.value('@Accion', 'VARCHAR(50)'), 1)
-                WHEN 'C' THEN '+'
-                WHEN 'S' THEN '+' -- Por si viene "Suma"
+            CASE T.Item.value('@TipoAccion', 'VARCHAR(50)')
+                WHEN 'Credito' THEN '+'
+                WHEN 'Debito'  THEN '-'
                 WHEN '+' THEN '+'
-                WHEN 'D' THEN '-'
-                WHEN 'R' THEN '-' -- Por si viene "Resta"
                 WHEN '-' THEN '-'
                 ELSE '+'          -- Fallback seguro para evitar fallos de constraint
             END
-        FROM @XmlData.nodes('/Datos/TiposMovimiento/TipoMovimiento') AS T(Item)
+        FROM @XmlData.nodes('/Datos/TiposMovimientos/TipoMovimiento') AS T(Item)
         WHERE NOT EXISTS (SELECT 1 FROM dbo.TipoMovimiento WHERE Id = T.Item.value('@Id', 'INT'));
 
         -- ── TipoDeduccion ───────────────────────────────────────
@@ -87,7 +85,7 @@ BEGIN
         INSERT INTO dbo.Puesto (Nombre, SalarioXHora)
         SELECT
             T.Item.value('@Nombre',       'VARCHAR(100)'),
-            T.Item.value('@SalarioXHora', 'MONEY')
+            T.Item.value('@SalarioxHora', 'MONEY')
         FROM @XmlData.nodes('/Datos/Puestos/Puesto') AS T(Item)
         WHERE NOT EXISTS (
             SELECT 1 FROM dbo.Puesto
@@ -110,16 +108,16 @@ BEGIN
         -- Usuarios
         INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
         SELECT
-            T.Item.value('@Username',     'VARCHAR(100)'),
-            T.Item.value('@PasswordHash', 'VARCHAR(256)'),
-            CASE T.Item.value('@Tipo', 'INT')
+            T.Item.value('@Nombre', 'VARCHAR(100)'),
+            T.Item.value('@Pass',   'VARCHAR(256)'),
+            CASE T.Item.value('@Id', 'INT')
                 WHEN 1 THEN 'administrador'
                 ELSE        'empleado'
             END
-        FROM @XmlData.nodes('/Datos/Usuarios/Usuario') AS T(Item)
+        FROM @XmlData.nodes('/Datos/Usuarios/usuario') AS T(Item)
         WHERE NOT EXISTS (
             SELECT 1 FROM dbo.Usuario
-            WHERE Username = T.Item.value('@Username', 'VARCHAR(100)')
+            WHERE Username = T.Item.value('@Nombre', 'VARCHAR(100)')
         );
 
         COMMIT TRANSACTION;

@@ -459,7 +459,10 @@ GO
 IF OBJECT_ID('dbo.trg_Empleado_DeduccionesObligatorias', 'TR') IS NOT NULL
     DROP TRIGGER dbo.trg_Empleado_DeduccionesObligatorias;
 GO
-CREATE TRIGGER dbo.trg_Empleado_DeduccionesObligatorias
+IF OBJECT_ID('dbo.trg_asignar_deducciones_obligatorias', 'TR') IS NOT NULL
+    DROP TRIGGER dbo.trg_asignar_deducciones_obligatorias;
+GO
+CREATE TRIGGER dbo.trg_asignar_deducciones_obligatorias
 ON dbo.Empleado
 AFTER INSERT
 AS
@@ -471,11 +474,17 @@ BEGIN
         i.Id,
         td.Id,
         0,
-        i.FechaContratacion,
+        GETDATE(),
         NULL
     FROM inserted i
     CROSS JOIN dbo.TipoDeduccion td
-    WHERE td.EsObligatoria = 1;
+    WHERE td.EsObligatoria = 1
+      AND NOT EXISTS (
+          SELECT 1
+          FROM dbo.DeduccionEmpleado de
+          WHERE de.IdEmpleado = i.Id
+            AND de.IdTipoDeduccion = td.Id
+      );
 END;
 GO
 

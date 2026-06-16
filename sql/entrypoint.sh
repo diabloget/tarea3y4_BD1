@@ -14,7 +14,7 @@
   done
 
   # Ejecución de todos tus archivos
-  for script in schema.sql sp_login.sql sp_logout.sql sp_obtener_error.sql sp_listar_empleado.sql sp_insertar_empleado.sql sp_procesar_operaciones_xml.sql sp_cargar_datos_xml.sql sp_listar_planillas_semanales.sql; do
+  for script in schema.sql sp_login.sql sp_logout.sql sp_obtener_error.sql sp_listar_empleado.sql sp_insertar_empleado.sql sp_eliminar_empleado.sql sp_procesar_operaciones_xml.sql sp_cargar_datos_xml.sql sp_listar_planillas_semanales.sql; do
     if [ -f "/db-init/$script" ]; then
       /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -i /db-init/$script
       echo "$script ejecutado."
