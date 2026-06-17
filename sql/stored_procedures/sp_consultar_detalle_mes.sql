@@ -16,12 +16,17 @@ BEGIN
         TD.Nombre AS NombreDeduccion,
         TD.EsPorcentual,
         CASE WHEN TD.EsPorcentual = 1 THEN TD.Valor ELSE NULL END AS Porcentaje,
-        DXM.MontoTotal AS MontoTotalMes
-    FROM dbo.PlanillaMensual PM
-    INNER JOIN dbo.DeduccionXMes DXM ON DXM.IdPlanillaMensual = PM.Id
-    INNER JOIN dbo.TipoDeduccion TD ON TD.Id = DXM.IdTipoDeduccion
-    WHERE PM.IdEmpleado = @IdEmpleado
-      AND PM.IdMes = @IdMes
+        SUM(Mov.Monto) AS MontoTotalMes
+    FROM dbo.Mes M
+    INNER JOIN dbo.MarcaAsistencia Marca
+        ON Marca.Fecha BETWEEN M.FechaInicio AND M.FechaFin
+    INNER JOIN dbo.MovimientoAsistencia Mov
+        ON Mov.IdMarcaAsistencia = Marca.Id
+    INNER JOIN dbo.TipoDeduccion TD
+        ON TD.IdTipoMovimiento = Mov.IdTipoMovimiento
+    WHERE Marca.IdEmpleado = @IdEmpleado
+      AND M.Id = @IdMes
+    GROUP BY TD.Nombre, TD.EsPorcentual, TD.Valor
     ORDER BY TD.Nombre ASC;
 END
 GO

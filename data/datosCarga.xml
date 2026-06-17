@@ -14,6 +14,7 @@
 		<Puesto Nombre="Niñera" SalarioxHora="12.00"/>
 		<Puesto Nombre="Conserje" SalarioxHora="11.00"/>
 		<Puesto Nombre="Albañil" SalarioxHora="10.50"/>
+		<Puesto Nombre="Electricista" SalarioxHora="14.00"/>
 	</Puestos>
 
 	<!-- =====================================================
@@ -34,7 +35,17 @@
 		<TipoEvento Id="12" Nombre="Consulta con filtro de cedula"/>
 		<TipoEvento Id="13" Nombre="Intento de insertar movimiento"/>
 		<TipoEvento Id="14" Nombre="Insertar movimiento exitoso"/>
+		<TipoEvento Id="24" Nombre="Eliminar empleado"/>
 	</TiposEvento>
+
+	<!-- =====================================================
+		TIPOS DE JORNADA
+	===================================================== -->
+	<TiposJornada>
+		<TipoJornada Id="1" Nombre="Diurno" HoraInicio="06:00" HoraFin="14:00"/>
+		<TipoJornada Id="2" Nombre="Vespertino" HoraInicio="14:00" HoraFin="22:00"/>
+		<TipoJornada Id="3" Nombre="Nocturno" HoraInicio="22:00" HoraFin="06:00"/>
+	</TiposJornada>
 
 	<!-- =====================================================
 		TIPOS DE MOVIMIENTOS

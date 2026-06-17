@@ -15,12 +15,14 @@ BEGIN
         M.Id AS IdMes,
         M.FechaInicio,
         M.FechaFin,
-        PM.SalarioBruto AS SalarioBrutoMensual,
-        PM.TotalDeducciones AS TotalDeduccionesMensual,
-        PM.SalarioNeto AS SalarioNetoMensual
-    FROM dbo.PlanillaMensual PM
-    INNER JOIN dbo.Mes M ON M.Id = PM.IdMes
-    WHERE PM.IdEmpleado = @IdEmpleado
+        SUM(PS.SalarioBruto) AS SalarioBrutoMensual,
+        SUM(PS.TotalDeducciones) AS TotalDeduccionesMensual,
+        SUM(PS.SalarioNeto) AS SalarioNetoMensual
+    FROM dbo.PlanillaSemanal PS
+    INNER JOIN dbo.Semana S ON S.Id = PS.IdSemana
+    INNER JOIN dbo.Mes M ON M.Id = S.IdMes
+    WHERE PS.IdEmpleado = @IdEmpleado
+    GROUP BY M.Id, M.FechaInicio, M.FechaFin
     ORDER BY M.FechaInicio DESC;
 END
 GO

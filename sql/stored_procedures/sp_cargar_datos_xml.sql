@@ -120,6 +120,73 @@ BEGIN
             WHERE Username = T.Item.value('@Nombre', 'VARCHAR(100)')
         );
 
+        -- Empleados base
+        DECLARE @ValorDocumentoEmp VARCHAR(50), @NombreEmp VARCHAR(100), @PuestoEmp VARCHAR(100), @FechaContratacionEmp DATE;
+        DECLARE @RespEmpleado INT;
+
+        DECLARE cur_empleados_base CURSOR LOCAL FAST_FORWARD FOR
+        SELECT
+            T.Item.value('@ValorDocumentoIdentidad', 'VARCHAR(50)'),
+            T.Item.value('@Nombre',                  'VARCHAR(100)'),
+            T.Item.value('@Puesto',                  'VARCHAR(100)'),
+            T.Item.value('@FechaContratacion',       'DATE')
+        FROM @XmlData.nodes('/Datos/Empleados/empleado') AS T(Item)
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.Empleado E
+            WHERE E.ValorDocumento = T.Item.value('@ValorDocumentoIdentidad', 'VARCHAR(50)')
+        );
+
+        OPEN cur_empleados_base;
+        FETCH NEXT FROM cur_empleados_base INTO @ValorDocumentoEmp, @NombreEmp, @PuestoEmp, @FechaContratacionEmp;
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            EXEC dbo.sp_insertar_empleado
+                @ValorDocumento    = @ValorDocumentoEmp,
+                @Nombre            = @NombreEmp,
+                @NombrePuesto      = @PuestoEmp,
+                @CuentaBancaria    = @ValorDocumentoEmp,
+                @FechaContratacion = @FechaContratacionEmp,
+                @Username          = @ValorDocumentoEmp,
+                @Password          = @ValorDocumentoEmp,
+                @OutRespuesta      = @RespEmpleado OUTPUT;
+
+            IF @RespEmpleado IN (50004, 50005, 50008)
+            BEGIN
+                SET @OutRespuesta = @RespEmpleado;
+                CLOSE cur_empleados_base; DEALLOCATE cur_empleados_base;
+                IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+                RETURN;
+            END
+
+            FETCH NEXT FROM cur_empleados_base INTO @ValorDocumentoEmp, @NombreEmp, @PuestoEmp, @FechaContratacionEmp;
+        END
+        CLOSE cur_empleados_base; DEALLOCATE cur_empleados_base;
+
+        -- Movimientos historicos vinculables a marcas existentes
+        INSERT INTO dbo.MovimientoAsistencia (IdMarcaAsistencia, IdTipoMovimiento, CantidadHoras, Monto)
+        SELECT
+            MA.Id,
+            TM.Id,
+            0,
+            T.Item.value('@Monto', 'DECIMAL(14,2)')
+        FROM @XmlData.nodes('/Datos/Movimientos/movimiento') AS T(Item)
+        INNER JOIN dbo.Empleado E
+            ON E.ValorDocumento = T.Item.value('@ValorDocId', 'VARCHAR(50)')
+        INNER JOIN dbo.TipoMovimiento TM
+            ON TM.Nombre = T.Item.value('@IdTipoMovimiento', 'VARCHAR(100)')
+        INNER JOIN dbo.MarcaAsistencia MA
+            ON MA.IdEmpleado = E.Id
+           AND MA.Fecha = T.Item.value('@Fecha', 'DATE')
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM dbo.MovimientoAsistencia Mov
+            WHERE Mov.IdMarcaAsistencia = MA.Id
+              AND Mov.IdTipoMovimiento = TM.Id
+              AND Mov.CantidadHoras = 0
+              AND Mov.Monto = T.Item.value('@Monto', 'DECIMAL(14,2)')
+        );
+
         COMMIT TRANSACTION;
         SET @OutRespuesta = 0;
     END TRY

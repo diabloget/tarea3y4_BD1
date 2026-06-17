@@ -6,7 +6,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-ALTER PROCEDURE [dbo].[sp_procesar_operaciones_xml]
+CREATE OR ALTER PROCEDURE [dbo].[sp_procesar_operaciones_xml]
     @XmlData      XML,
     @OutRespuesta INT OUTPUT
 AS
@@ -21,8 +21,10 @@ BEGIN
     DECLARE @IdDocEliminar VARCHAR(50);
     DECLARE @ValDocDesDed VARCHAR(50), @NomDedDes VARCHAR(100);
     DECLARE @ValDoc2 VARCHAR(50), @NomJornada VARCHAR(100), @InicioSemana DATE;
-    DECLARE @IdEmpleado INT, @IdJornada INT, @IdSemana INT, @IdMes INT;
+    DECLARE @IdEmpleado INT, @IdEmpleadoNuevo INT, @IdJornada INT, @IdSemana INT, @IdMes INT;
     DECLARE @PrimerDia DATE, @UltimoDia DATE, @NumJueves TINYINT;
+    DECLARE @ViernesSiguiente DATE, @FechaFinNuevoMes DATE, @IdMesNuevo INT;
+    DECLARE @IdEmpleadoCierre INT, @IdMesCierre INT, @IdPlanillaMensual INT;
     DECLARE @DocAsis VARCHAR(50), @HoraEntrada DATETIME, @HoraSalida DATETIME;
     DECLARE @IdEmpAsis INT, @SalarioXHora DECIMAL(14,2);
     DECLARE @IdHorarioJornada INT, @IdSemanaAsis INT, @HoraFinJornada TIME;
@@ -32,38 +34,118 @@ BEGIN
     DECLARE @MontoOrdinario DECIMAL(14,2), @MontoExtra DECIMAL(14,2), @TotalGenerated DECIMAL(14,2);
     DECLARE @IdMarcaAsistencia INT;
 
+    CREATE TABLE #InsertarEmpleado (
+        Fecha DATE NOT NULL,
+        ValorDocumento VARCHAR(50) NOT NULL,
+        Nombre VARCHAR(100) NOT NULL,
+        Puesto VARCHAR(100) NOT NULL,
+        CuentaBancaria VARCHAR(100) NULL,
+        FechaContratacion DATE NOT NULL,
+        Username VARCHAR(64) NULL,
+        Password VARCHAR(128) NULL
+    );
+
+    CREATE TABLE #EliminarEmpleado (
+        Fecha DATE NOT NULL,
+        ValorDocumento VARCHAR(50) NOT NULL
+    );
+
+    CREATE TABLE #AsociaDeduccion (
+        Fecha DATE NOT NULL,
+        ValorDocumento VARCHAR(50) NOT NULL,
+        TipoDeduccion VARCHAR(100) NOT NULL,
+        MontoFijo DECIMAL(12,2) NOT NULL
+    );
+
+    CREATE TABLE #DesasociaDeduccion (
+        Fecha DATE NOT NULL,
+        ValorDocumento VARCHAR(50) NOT NULL,
+        TipoDeduccion VARCHAR(100) NOT NULL
+    );
+
+    CREATE TABLE #MarcaAsistencia (
+        Fecha DATE NOT NULL,
+        ValorDocumento VARCHAR(50) NOT NULL,
+        HoraEntrada DATETIME NOT NULL,
+        HoraSalida DATETIME NOT NULL
+    );
+
+    CREATE TABLE #AsignarJornada (
+        Fecha DATE NOT NULL,
+        ValorDocumento VARCHAR(50) NOT NULL,
+        Jornada VARCHAR(100) NOT NULL,
+        InicioSemana DATE NOT NULL
+    );
+
+    INSERT INTO #InsertarEmpleado (Fecha, ValorDocumento, Nombre, Puesto, CuentaBancaria, FechaContratacion, Username, Password)
+    SELECT
+        F.FechaOperacion.value('(@Fecha)[1]', 'DATE'),
+        Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
+        Op.value('(@Nombre)[1]',                  'VARCHAR(100)'),
+        Op.value('(@Puesto)[1]',                  'VARCHAR(100)'),
+        Op.value('(@CuentaBancaria)[1]',          'VARCHAR(100)'),
+        ISNULL(Op.value('(@FechaContratacion)[1]', 'DATE'), F.FechaOperacion.value('(@Fecha)[1]', 'DATE')),
+        Op.value('(@Username)[1]',                'VARCHAR(64)'),
+        Op.value('(@Password)[1]',                'VARCHAR(128)')
+    FROM @XmlData.nodes('/Operaciones/FechaOperacion') AS F(FechaOperacion)
+    CROSS APPLY F.FechaOperacion.nodes('InsertarEmpleado') AS T(Op);
+
+    INSERT INTO #EliminarEmpleado (Fecha, ValorDocumento)
+    SELECT
+        F.FechaOperacion.value('(@Fecha)[1]', 'DATE'),
+        Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
+    FROM @XmlData.nodes('/Operaciones/FechaOperacion') AS F(FechaOperacion)
+    CROSS APPLY F.FechaOperacion.nodes('EliminarEmpleado') AS T(Op);
+
+    INSERT INTO #AsociaDeduccion (Fecha, ValorDocumento, TipoDeduccion, MontoFijo)
+    SELECT
+        F.FechaOperacion.value('(@Fecha)[1]', 'DATE'),
+        Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
+        Op.value('(@TipoDeduccion)[1]', 'VARCHAR(100)'),
+        ISNULL(Op.value('(@MontoFijo)[1]', 'DECIMAL(12,2)'), 0)
+    FROM @XmlData.nodes('/Operaciones/FechaOperacion') AS F(FechaOperacion)
+    CROSS APPLY F.FechaOperacion.nodes('AsociaEmpleadoConDeduccion') AS T(Op);
+
+    INSERT INTO #DesasociaDeduccion (Fecha, ValorDocumento, TipoDeduccion)
+    SELECT
+        F.FechaOperacion.value('(@Fecha)[1]', 'DATE'),
+        Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
+        Op.value('(@TipoDeduccion)[1]', 'VARCHAR(100)')
+    FROM @XmlData.nodes('/Operaciones/FechaOperacion') AS F(FechaOperacion)
+    CROSS APPLY F.FechaOperacion.nodes('DesasociaEmpleadoConDeduccion') AS T(Op);
+
+    INSERT INTO #MarcaAsistencia (Fecha, ValorDocumento, HoraEntrada, HoraSalida)
+    SELECT
+        F.FechaOperacion.value('(@Fecha)[1]', 'DATE'),
+        Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
+        Op.value('(@HoraEntrada)[1]', 'DATETIME'),
+        Op.value('(@HoraSalida)[1]',  'DATETIME')
+    FROM @XmlData.nodes('/Operaciones/FechaOperacion') AS F(FechaOperacion)
+    CROSS APPLY F.FechaOperacion.nodes('MarcaAsistencia') AS T(Op);
+
+    INSERT INTO #AsignarJornada (Fecha, ValorDocumento, Jornada, InicioSemana)
+    SELECT
+        F.FechaOperacion.value('(@Fecha)[1]', 'DATE'),
+        Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
+        Op.value('(@Jornada)[1]',                 'VARCHAR(100)'),
+        ISNULL(Op.value('(@InicioSemana)[1]', 'DATE'), F.FechaOperacion.value('(@Fecha)[1]', 'DATE'))
+    FROM @XmlData.nodes('/Operaciones/FechaOperacion') AS F(FechaOperacion)
+    CROSS APPLY F.FechaOperacion.nodes('AsignarJornada') AS T(Op);
+
     DECLARE cur_operacion CURSOR LOCAL FAST_FORWARD FOR
     SELECT Fecha, ValorDocumento
     FROM (
-        SELECT
-            Op.value('(../@Fecha)[1]', 'DATE') AS Fecha,
-            Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)') AS ValorDocumento
-        FROM @XmlData.nodes('/Operaciones/FechaOperacion/InsertarEmpleado') AS T(Op)
+        SELECT Fecha, ValorDocumento FROM #InsertarEmpleado
         UNION
-        SELECT
-            Op.value('(../@Fecha)[1]', 'DATE'),
-            Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
-        FROM @XmlData.nodes('/Operaciones/FechaOperacion/EliminarEmpleado') AS T(Op)
+        SELECT Fecha, ValorDocumento FROM #EliminarEmpleado
         UNION
-        SELECT
-            Op.value('(../@Fecha)[1]', 'DATE'),
-            Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
-        FROM @XmlData.nodes('/Operaciones/FechaOperacion/AsociaEmpleadoConDeduccion') AS T(Op)
+        SELECT Fecha, ValorDocumento FROM #AsociaDeduccion
         UNION
-        SELECT
-            Op.value('(../@Fecha)[1]', 'DATE'),
-            Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
-        FROM @XmlData.nodes('/Operaciones/FechaOperacion/DesasociaEmpleadoConDeduccion') AS T(Op)
+        SELECT Fecha, ValorDocumento FROM #DesasociaDeduccion
         UNION
-        SELECT
-            Op.value('(../@Fecha)[1]', 'DATE'),
-            Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
-        FROM @XmlData.nodes('/Operaciones/FechaOperacion/MarcaAsistencia') AS T(Op)
+        SELECT Fecha, ValorDocumento FROM #MarcaAsistencia
         UNION
-        SELECT
-            Op.value('(../@Fecha)[1]', 'DATE'),
-            Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
-        FROM @XmlData.nodes('/Operaciones/FechaOperacion/AsignarJornada') AS T(Op)
+        SELECT Fecha, ValorDocumento FROM #AsignarJornada
     ) Operaciones
     WHERE Fecha IS NOT NULL
       AND NULLIF(ValorDocumento, '') IS NOT NULL
@@ -81,16 +163,16 @@ BEGIN
             -- InsertarEmpleado del empleado en la fecha actual.
             DECLARE cur_emp CURSOR LOCAL FAST_FORWARD FOR
             SELECT
-                Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
-                Op.value('(@Nombre)[1]',                  'VARCHAR(100)'),
-                Op.value('(@Puesto)[1]',                  'VARCHAR(100)'),
-                Op.value('(@CuentaBancaria)[1]',          'VARCHAR(100)'),
-                ISNULL(Op.value('(@FechaContratacion)[1]', 'DATE'), @FechaProceso),
-                Op.value('(@Username)[1]',                'VARCHAR(64)'),
-                Op.value('(@Password)[1]',                'VARCHAR(128)')
-            FROM @XmlData.nodes('/Operaciones/FechaOperacion/InsertarEmpleado') AS T(Op)
-            WHERE Op.value('(../@Fecha)[1]', 'DATE') = @FechaProceso
-              AND Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)') = @DocProceso;
+                ValorDocumento,
+                Nombre,
+                Puesto,
+                CuentaBancaria,
+                FechaContratacion,
+                Username,
+                Password
+            FROM #InsertarEmpleado
+            WHERE Fecha = @FechaProceso
+              AND ValorDocumento = @DocProceso;
 
             OPEN cur_emp;
             FETCH NEXT FROM cur_emp INTO @IdDoc, @Nom, @NomPuesto, @Cuenta, @FechaContrato, @UName, @Pwd;
@@ -115,16 +197,111 @@ BEGIN
                     RETURN;
                 END
 
+                IF DATENAME(WEEKDAY, @FechaProceso) = 'Thursday'
+                BEGIN
+                    SET @ViernesSiguiente = DATEADD(DAY, 1, @FechaProceso);
+                    SET @IdEmpleadoNuevo = NULL; SET @IdMesNuevo = NULL; SET @IdSemana = NULL;
+
+                    SELECT @IdEmpleadoNuevo = Id
+                    FROM dbo.Empleado
+                    WHERE ValorDocumento = @IdDoc
+                      AND Activo = 1;
+
+                    IF @IdEmpleadoNuevo IS NOT NULL
+                    BEGIN
+                        SELECT TOP 1 @IdMesNuevo = Id
+                        FROM dbo.Mes
+                        WHERE @ViernesSiguiente BETWEEN FechaInicio AND FechaFin
+                        ORDER BY
+                            CASE WHEN FechaInicio = @ViernesSiguiente THEN 0 ELSE 1 END,
+                            FechaInicio DESC;
+
+                        IF @IdMesNuevo IS NULL
+                        BEGIN
+                            SET @FechaFinNuevoMes = (
+                                SELECT MAX(Dia)
+                                FROM (
+                                    SELECT DATEADD(DAY, n.n, @ViernesSiguiente) AS Dia
+                                    FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),
+                                                (10),(11),(12),(13),(14),(15),(16),(17),(18),(19),
+                                                (20),(21),(22),(23),(24),(25),(26),(27),(28),(29),(30),
+                                                (31),(32),(33),(34),(35),(36),(37)) n(n)
+                                    WHERE DATEADD(DAY, n.n, @ViernesSiguiente) <= EOMONTH(@ViernesSiguiente)
+                                      AND DATENAME(WEEKDAY, DATEADD(DAY, n.n, @ViernesSiguiente)) = 'Thursday'
+                                ) JuevesNuevoMes
+                            );
+
+                            IF @FechaFinNuevoMes IS NULL
+                                SET @FechaFinNuevoMes = DATEADD(DAY, 6, @ViernesSiguiente);
+
+                            SET @NumJueves = (
+                                SELECT COUNT(*)
+                                FROM (
+                                    SELECT DATEADD(DAY, n.n, @ViernesSiguiente) AS Dia
+                                    FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),
+                                                (10),(11),(12),(13),(14),(15),(16),(17),(18),(19),
+                                                (20),(21),(22),(23),(24),(25),(26),(27),(28),(29),(30),
+                                                (31),(32),(33),(34),(35),(36),(37)) n(n)
+                                    WHERE DATEADD(DAY, n.n, @ViernesSiguiente) <= @FechaFinNuevoMes
+                                      AND DATENAME(WEEKDAY, DATEADD(DAY, n.n, @ViernesSiguiente)) = 'Thursday'
+                                ) JuevesNuevoMes
+                            );
+
+                            IF @NumJueves = 0 SET @NumJueves = 1;
+
+                            INSERT INTO dbo.Mes (FechaInicio, FechaFin, NumJueves)
+                            VALUES (@ViernesSiguiente, @FechaFinNuevoMes, @NumJueves);
+                            SET @IdMesNuevo = SCOPE_IDENTITY();
+                        END
+
+                        SELECT @IdSemana = Id
+                        FROM dbo.Semana
+                        WHERE FechaInicio = @ViernesSiguiente;
+
+                        IF @IdSemana IS NULL
+                        BEGIN
+                            INSERT INTO dbo.Semana (IdMes, FechaInicio, FechaFin)
+                            VALUES (@IdMesNuevo, @ViernesSiguiente, DATEADD(DAY, 6, @ViernesSiguiente));
+                            SET @IdSemana = SCOPE_IDENTITY();
+                        END
+
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM dbo.PlanillaSemanal
+                            WHERE IdEmpleado = @IdEmpleadoNuevo
+                              AND IdSemana = @IdSemana
+                        )
+                        BEGIN
+                            INSERT INTO dbo.PlanillaSemanal
+                                (IdEmpleado, IdSemana, SalarioBruto, TotalDeducciones, SalarioNeto, HorasOrdinarias, HorasExtraNormal, HorasExtraDoble)
+                            VALUES
+                                (@IdEmpleadoNuevo, @IdSemana, 0, 0, 0, 0, 0, 0);
+                        END
+
+                        IF DATEPART(DAY, @ViernesSiguiente) <= 7
+                           AND NOT EXISTS (
+                               SELECT 1
+                               FROM dbo.PlanillaMensual
+                               WHERE IdEmpleado = @IdEmpleadoNuevo
+                                 AND IdMes = @IdMesNuevo
+                           )
+                        BEGIN
+                            INSERT INTO dbo.PlanillaMensual (IdEmpleado, IdMes, SalarioBruto, TotalDeducciones, SalarioNeto)
+                            VALUES (@IdEmpleadoNuevo, @IdMesNuevo, 0, 0, 0);
+                        END
+                    END
+                END
+
                 FETCH NEXT FROM cur_emp INTO @IdDoc, @Nom, @NomPuesto, @Cuenta, @FechaContrato, @UName, @Pwd;
             END
             CLOSE cur_emp; DEALLOCATE cur_emp;
 
             -- EliminarEmpleado del empleado en la fecha actual.
             DECLARE cur_emp_del CURSOR LOCAL FAST_FORWARD FOR
-            SELECT Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
-            FROM @XmlData.nodes('/Operaciones/FechaOperacion/EliminarEmpleado') AS T(Op)
-            WHERE Op.value('(../@Fecha)[1]', 'DATE') = @FechaProceso
-              AND Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)') = @DocProceso;
+            SELECT ValorDocumento
+            FROM #EliminarEmpleado
+            WHERE Fecha = @FechaProceso
+              AND ValorDocumento = @DocProceso;
 
             OPEN cur_emp_del;
             FETCH NEXT FROM cur_emp_del INTO @IdDocEliminar;
@@ -152,17 +329,17 @@ BEGIN
             SELECT
                 E.Id,
                 TD.Id,
-                ISNULL(Op.value('(@MontoFijo)[1]', 'DECIMAL(12,2)'), 0),
+                AD.MontoFijo,
                 @FechaProceso,
                 NULL
-            FROM @XmlData.nodes('/Operaciones/FechaOperacion/AsociaEmpleadoConDeduccion') AS T(Op)
+            FROM #AsociaDeduccion AD
             INNER JOIN dbo.Empleado E
-                ON E.ValorDocumento = Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)')
+                ON E.ValorDocumento = AD.ValorDocumento
                AND E.Activo = 1
             INNER JOIN dbo.TipoDeduccion TD
-                ON TD.Nombre = Op.value('(@TipoDeduccion)[1]', 'VARCHAR(100)')
-            WHERE Op.value('(../@Fecha)[1]', 'DATE') = @FechaProceso
-              AND Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)') = @DocProceso
+                ON TD.Nombre = AD.TipoDeduccion
+            WHERE AD.Fecha = @FechaProceso
+              AND AD.ValorDocumento = @DocProceso
               AND NOT EXISTS (
                   SELECT 1
                   FROM dbo.DeduccionEmpleado DE
@@ -174,11 +351,11 @@ BEGIN
             -- DesasociaEmpleadoConDeduccion del empleado en la fecha actual.
             DECLARE cur_des_ded CURSOR LOCAL FAST_FORWARD FOR
             SELECT
-                Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
-                Op.value('(@TipoDeduccion)[1]', 'VARCHAR(100)')
-            FROM @XmlData.nodes('/Operaciones/FechaOperacion/DesasociaEmpleadoConDeduccion') AS T(Op)
-            WHERE Op.value('(../@Fecha)[1]', 'DATE') = @FechaProceso
-              AND Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)') = @DocProceso;
+                ValorDocumento,
+                TipoDeduccion
+            FROM #DesasociaDeduccion
+            WHERE Fecha = @FechaProceso
+              AND ValorDocumento = @DocProceso;
 
             OPEN cur_des_ded;
             FETCH NEXT FROM cur_des_ded INTO @ValDocDesDed, @NomDedDes;
@@ -202,15 +379,97 @@ BEGIN
             END
             CLOSE cur_des_ded; DEALLOCATE cur_des_ded;
 
+            -- AsignarJornada del empleado en la fecha actual. Empleados inactivos se ignoran.
+            DECLARE cur_jornada CURSOR LOCAL FAST_FORWARD FOR
+            SELECT
+                ValorDocumento,
+                Jornada,
+                InicioSemana
+            FROM #AsignarJornada
+            WHERE Fecha = @FechaProceso
+              AND ValorDocumento = @DocProceso;
+
+            OPEN cur_jornada;
+            FETCH NEXT FROM cur_jornada INTO @ValDoc2, @NomJornada, @InicioSemana;
+            WHILE @@FETCH_STATUS = 0
+            BEGIN
+                SET @IdEmpleado = NULL; SET @IdJornada = NULL; SET @IdMes = NULL; SET @IdSemana = NULL;
+
+                SELECT @IdEmpleado = Id
+                FROM dbo.Empleado
+                WHERE ValorDocumento = @ValDoc2
+                  AND Activo = 1;
+
+                SELECT @IdJornada = Id FROM dbo.TipoJornada WHERE Nombre = @NomJornada;
+
+                IF @IdEmpleado IS NOT NULL AND @IdJornada IS NOT NULL AND @InicioSemana IS NOT NULL
+                BEGIN
+                    SELECT TOP 1 @IdMes = Id
+                    FROM dbo.Mes
+                    WHERE @InicioSemana BETWEEN FechaInicio AND FechaFin
+                    ORDER BY
+                        CASE WHEN FechaInicio = @InicioSemana THEN 0 ELSE 1 END,
+                        FechaInicio DESC;
+                    IF @IdMes IS NULL
+                    BEGIN
+                        SET @PrimerDia = @InicioSemana;
+                        SET @UltimoDia = (
+                            SELECT MAX(Dia)
+                            FROM (
+                                SELECT DATEADD(DAY, n.n, @PrimerDia) AS Dia
+                                FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),
+                                            (10),(11),(12),(13),(14),(15),(16),(17),(18),(19),
+                                            (20),(21),(22),(23),(24),(25),(26),(27),(28),(29),(30),
+                                            (31),(32),(33),(34),(35),(36),(37)) n(n)
+                                WHERE DATEADD(DAY, n.n, @PrimerDia) <= EOMONTH(@PrimerDia)
+                                  AND DATENAME(WEEKDAY, DATEADD(DAY, n.n, @PrimerDia)) = 'Thursday'
+                            ) Jueves
+                        );
+                        IF @UltimoDia IS NULL
+                            SET @UltimoDia = DATEADD(DAY, 6, @PrimerDia);
+
+                        SET @NumJueves = (
+                            SELECT COUNT(*)
+                            FROM (
+                                SELECT DATEADD(DAY, n.n, @PrimerDia) AS Dia
+                                FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),
+                                            (10),(11),(12),(13),(14),(15),(16),(17),(18),(19),
+                                            (20),(21),(22),(23),(24),(25),(26),(27),(28),(29),(30),
+                                            (31),(32),(33),(34),(35),(36),(37)) n(n)
+                                WHERE DATEADD(DAY, n.n, @PrimerDia) <= @UltimoDia
+                                  AND DATENAME(WEEKDAY, DATEADD(DAY, n.n, @PrimerDia)) = 'Thursday'
+                            ) Jueves
+                        );
+                        INSERT INTO dbo.Mes (FechaInicio, FechaFin, NumJueves) VALUES (@PrimerDia, @UltimoDia, @NumJueves);
+                        SET @IdMes = SCOPE_IDENTITY();
+                    END
+
+                    SELECT @IdSemana = Id FROM dbo.Semana WHERE FechaInicio = @InicioSemana;
+                    IF @IdSemana IS NULL
+                    BEGIN
+                        INSERT INTO dbo.Semana (IdMes, FechaInicio, FechaFin)
+                        VALUES (@IdMes, @InicioSemana, DATEADD(DAY, 6, @InicioSemana));
+                        SET @IdSemana = SCOPE_IDENTITY();
+                    END
+
+                    IF NOT EXISTS (SELECT 1 FROM dbo.HorarioJornada WHERE IdEmpleado = @IdEmpleado AND IdSemana = @IdSemana)
+                        INSERT INTO dbo.HorarioJornada (IdEmpleado, IdSemana, IdTipoJornada)
+                        VALUES (@IdEmpleado, @IdSemana, @IdJornada);
+                END
+
+                FETCH NEXT FROM cur_jornada INTO @ValDoc2, @NomJornada, @InicioSemana;
+            END
+            CLOSE cur_jornada; DEALLOCATE cur_jornada;
+
             -- MarcaAsistencia, movimientos y acumulado semanal del empleado en la fecha actual.
             DECLARE cur_asis CURSOR LOCAL FAST_FORWARD FOR
             SELECT
-                Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
-                Op.value('(@HoraEntrada)[1]', 'DATETIME'),
-                Op.value('(@HoraSalida)[1]',  'DATETIME')
-            FROM @XmlData.nodes('/Operaciones/FechaOperacion/MarcaAsistencia') AS T(Op)
-            WHERE Op.value('(../@Fecha)[1]', 'DATE') = @FechaProceso
-              AND Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)') = @DocProceso;
+                ValorDocumento,
+                HoraEntrada,
+                HoraSalida
+            FROM #MarcaAsistencia
+            WHERE Fecha = @FechaProceso
+              AND ValorDocumento = @DocProceso;
 
             OPEN cur_asis;
             FETCH NEXT FROM cur_asis INTO @DocAsis, @HoraEntrada, @HoraSalida;
@@ -390,69 +649,127 @@ BEGIN
                 ) D
                 WHERE E.ValorDocumento = @DocProceso
                   AND @FechaProceso BETWEEN S.FechaInicio AND S.FechaFin;
-            END
 
-            -- AsignarJornada del empleado en la fecha actual. Empleados inactivos se ignoran.
-            DECLARE cur_jornada CURSOR LOCAL FAST_FORWARD FOR
-            SELECT
-                Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)'),
-                Op.value('(@Jornada)[1]',                 'VARCHAR(100)'),
-                ISNULL(Op.value('(@InicioSemana)[1]', 'DATE'), @FechaProceso)
-            FROM @XmlData.nodes('/Operaciones/FechaOperacion/AsignarJornada') AS T(Op)
-            WHERE Op.value('(../@Fecha)[1]', 'DATE') = @FechaProceso
-              AND Op.value('(@ValorDocumentoIdentidad)[1]', 'VARCHAR(50)') = @DocProceso;
+                SET @IdEmpleadoCierre = NULL;
+                SET @IdMesCierre = NULL;
+                SET @IdPlanillaMensual = NULL;
 
-            OPEN cur_jornada;
-            FETCH NEXT FROM cur_jornada INTO @ValDoc2, @NomJornada, @InicioSemana;
-            WHILE @@FETCH_STATUS = 0
-            BEGIN
-                SET @IdEmpleado = NULL; SET @IdJornada = NULL; SET @IdMes = NULL; SET @IdSemana = NULL;
+                SELECT TOP 1
+                    @IdEmpleadoCierre = PS.IdEmpleado,
+                    @IdMesCierre = S.IdMes
+                FROM dbo.PlanillaSemanal PS
+                INNER JOIN dbo.Semana S ON S.Id = PS.IdSemana
+                INNER JOIN dbo.Empleado E ON E.Id = PS.IdEmpleado
+                WHERE E.ValorDocumento = @DocProceso
+                  AND @FechaProceso BETWEEN S.FechaInicio AND S.FechaFin;
 
-                SELECT @IdEmpleado = Id
-                FROM dbo.Empleado
-                WHERE ValorDocumento = @ValDoc2
-                  AND Activo = 1;
-
-                SELECT @IdJornada = Id FROM dbo.TipoJornada WHERE Nombre = @NomJornada;
-
-                IF @IdEmpleado IS NOT NULL AND @IdJornada IS NOT NULL AND @InicioSemana IS NOT NULL
+                IF @IdEmpleadoCierre IS NOT NULL AND @IdMesCierre IS NOT NULL
                 BEGIN
-                    SELECT @IdMes = Id FROM dbo.Mes WHERE @InicioSemana BETWEEN FechaInicio AND FechaFin;
-                    IF @IdMes IS NULL
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM dbo.PlanillaMensual
+                        WHERE IdEmpleado = @IdEmpleadoCierre
+                          AND IdMes = @IdMesCierre
+                    )
                     BEGIN
-                        SET @PrimerDia = DATEFROMPARTS(YEAR(@InicioSemana), MONTH(@InicioSemana), 1);
-                        SET @UltimoDia = EOMONTH(@InicioSemana);
-                        SET @NumJueves = (
-                            SELECT COUNT(*)
-                            FROM (
-                                SELECT TOP 5 DATEADD(DAY, n.n, @PrimerDia) AS Dia
-                                FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),
-                                            (10),(11),(12),(13),(14),(15),(16),(17),(18),(19),
-                                            (20),(21),(22),(23),(24),(25),(26),(27),(28),(29),(30)) n(n)
-                                WHERE DATEADD(DAY, n.n, @PrimerDia) <= @UltimoDia
-                                  AND DATENAME(WEEKDAY, DATEADD(DAY, n.n, @PrimerDia)) = 'Thursday'
-                            ) Jueves
-                        );
-                        INSERT INTO dbo.Mes (FechaInicio, FechaFin, NumJueves) VALUES (@PrimerDia, @UltimoDia, @NumJueves);
-                        SET @IdMes = SCOPE_IDENTITY();
+                        INSERT INTO dbo.PlanillaMensual (IdEmpleado, IdMes, SalarioBruto, TotalDeducciones, SalarioNeto)
+                        VALUES (@IdEmpleadoCierre, @IdMesCierre, 0, 0, 0);
                     END
 
-                    SELECT @IdSemana = Id FROM dbo.Semana WHERE FechaInicio = @InicioSemana;
-                    IF @IdSemana IS NULL
-                    BEGIN
-                        INSERT INTO dbo.Semana (IdMes, FechaInicio, FechaFin)
-                        VALUES (@IdMes, @InicioSemana, DATEADD(DAY, 6, @InicioSemana));
-                        SET @IdSemana = SCOPE_IDENTITY();
-                    END
+                    SELECT @IdPlanillaMensual = Id
+                    FROM dbo.PlanillaMensual
+                    WHERE IdEmpleado = @IdEmpleadoCierre
+                      AND IdMes = @IdMesCierre;
 
-                    IF NOT EXISTS (SELECT 1 FROM dbo.HorarioJornada WHERE IdEmpleado = @IdEmpleado AND IdSemana = @IdSemana)
-                        INSERT INTO dbo.HorarioJornada (IdEmpleado, IdSemana, IdTipoJornada)
-                        VALUES (@IdEmpleado, @IdSemana, @IdJornada);
+                    UPDATE PM
+                    SET PM.SalarioBruto = ISNULL(T.SalarioBruto, 0),
+                        PM.TotalDeducciones = ISNULL(T.TotalDeducciones, 0),
+                        PM.SalarioNeto = ISNULL(T.SalarioNeto, 0)
+                    FROM dbo.PlanillaMensual PM
+                    OUTER APPLY (
+                        SELECT
+                            SUM(PS.SalarioBruto) AS SalarioBruto,
+                            SUM(PS.TotalDeducciones) AS TotalDeducciones,
+                            SUM(PS.SalarioNeto) AS SalarioNeto
+                        FROM dbo.PlanillaSemanal PS
+                        INNER JOIN dbo.Semana S ON S.Id = PS.IdSemana
+                        WHERE PS.IdEmpleado = PM.IdEmpleado
+                          AND S.IdMes = PM.IdMes
+                    ) T
+                    WHERE PM.Id = @IdPlanillaMensual;
+
+                    DELETE FROM dbo.DeduccionXMes
+                    WHERE IdPlanillaMensual = @IdPlanillaMensual;
+
+                    INSERT INTO dbo.DeduccionXMes (IdPlanillaMensual, IdTipoDeduccion, MontoTotal)
+                    SELECT
+                        @IdPlanillaMensual,
+                        TD.Id,
+                        SUM(MA.Monto)
+                    FROM dbo.MarcaAsistencia Marca
+                    INNER JOIN dbo.MovimientoAsistencia MA ON MA.IdMarcaAsistencia = Marca.Id
+                    INNER JOIN dbo.TipoDeduccion TD ON TD.IdTipoMovimiento = MA.IdTipoMovimiento
+                    INNER JOIN dbo.Mes M ON M.Id = @IdMesCierre
+                    WHERE Marca.IdEmpleado = @IdEmpleadoCierre
+                      AND Marca.Fecha BETWEEN M.FechaInicio AND M.FechaFin
+                    GROUP BY TD.Id
+                    HAVING SUM(MA.Monto) > 0;
                 END
 
-                FETCH NEXT FROM cur_jornada INTO @ValDoc2, @NomJornada, @InicioSemana;
+                IF DATEPART(DAY, DATEADD(DAY, 1, @FechaProceso)) <= 7
+                BEGIN
+                    SET @ViernesSiguiente = DATEADD(DAY, 1, @FechaProceso);
+                    SET @IdMesNuevo = NULL;
+                    SET @FechaFinNuevoMes = (
+                        SELECT MAX(Dia)
+                        FROM (
+                            SELECT DATEADD(DAY, n.n, @ViernesSiguiente) AS Dia
+                            FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),
+                                        (10),(11),(12),(13),(14),(15),(16),(17),(18),(19),
+                                        (20),(21),(22),(23),(24),(25),(26),(27),(28),(29),(30),
+                                        (31),(32),(33),(34),(35),(36),(37)) n(n)
+                            WHERE DATEADD(DAY, n.n, @ViernesSiguiente) <= EOMONTH(@ViernesSiguiente)
+                              AND DATENAME(WEEKDAY, DATEADD(DAY, n.n, @ViernesSiguiente)) = 'Thursday'
+                        ) JuevesNuevoMes
+                    );
+
+                    SET @NumJueves = (
+                        SELECT COUNT(*)
+                        FROM (
+                            SELECT DATEADD(DAY, n.n, @ViernesSiguiente) AS Dia
+                            FROM (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),
+                                        (10),(11),(12),(13),(14),(15),(16),(17),(18),(19),
+                                        (20),(21),(22),(23),(24),(25),(26),(27),(28),(29),(30),
+                                        (31),(32),(33),(34),(35),(36),(37)) n(n)
+                            WHERE DATEADD(DAY, n.n, @ViernesSiguiente) <= @FechaFinNuevoMes
+                              AND DATENAME(WEEKDAY, DATEADD(DAY, n.n, @ViernesSiguiente)) = 'Thursday'
+                        ) JuevesNuevoMes
+                    );
+
+                    SELECT @IdMesNuevo = Id
+                    FROM dbo.Mes
+                    WHERE FechaInicio = @ViernesSiguiente
+                      AND FechaFin = @FechaFinNuevoMes;
+
+                    IF @IdMesNuevo IS NULL
+                    BEGIN
+                        INSERT INTO dbo.Mes (FechaInicio, FechaFin, NumJueves)
+                        VALUES (@ViernesSiguiente, @FechaFinNuevoMes, @NumJueves);
+                        SET @IdMesNuevo = SCOPE_IDENTITY();
+                    END
+
+                    INSERT INTO dbo.PlanillaMensual (IdEmpleado, IdMes, SalarioBruto, TotalDeducciones, SalarioNeto)
+                    SELECT E.Id, @IdMesNuevo, 0, 0, 0
+                    FROM dbo.Empleado E
+                    WHERE E.Activo = 1
+                      AND NOT EXISTS (
+                          SELECT 1
+                          FROM dbo.PlanillaMensual PM
+                          WHERE PM.IdEmpleado = E.Id
+                            AND PM.IdMes = @IdMesNuevo
+                      );
+                END
             END
-            CLOSE cur_jornada; DEALLOCATE cur_jornada;
 
             COMMIT TRANSACTION;
         END TRY

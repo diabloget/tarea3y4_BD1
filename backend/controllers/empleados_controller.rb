@@ -7,6 +7,12 @@ helpers do
     "¢#{format('%.2f', value.to_f)}"
   end
 
+  def truthy_db?(value)
+    return value if value == true || value == false
+
+    value.to_i == 1
+  end
+
   def empleado_consulta_id
     (session[:impersonando] || session[:empleado_id] || session[:usuario_id]).to_i
   end
@@ -56,10 +62,11 @@ helpers do
       render_empty_row(4, 'No hay deducciones aplicadas para esta semana.')
     else
       deducciones.map do |d|
-        porcentaje = d['EsPorcentual'].to_i == 1 ? "#{format('%.4f', d['Porcentaje'].to_f)}%" : ''
+        es_porcentual = truthy_db?(d['EsPorcentual'])
+        porcentaje = es_porcentual ? "#{format('%.4f', d['Porcentaje'].to_f)}%" : ''
         "<tr>
           <td>#{h(d['NombreDeduccion'])}</td>
-          <td>#{d['EsPorcentual'].to_i == 1 ? 'Si' : 'No'}</td>
+          <td>#{es_porcentual ? 'Si' : 'No'}</td>
           <td class='text-right'>#{h(porcentaje)}</td>
           <td class='text-right'>#{money(d['MontoDeducido'])}</td>
         </tr>"
@@ -89,10 +96,11 @@ helpers do
       render_empty_row(4, 'No hay deducciones registradas para este mes.')
     else
       deducciones.map do |d|
-        porcentaje = d['EsPorcentual'].to_i == 1 ? "#{format('%.4f', d['Porcentaje'].to_f)}%" : ''
+        es_porcentual = truthy_db?(d['EsPorcentual'])
+        porcentaje = es_porcentual ? "#{format('%.4f', d['Porcentaje'].to_f)}%" : ''
         "<tr>
           <td>#{h(d['NombreDeduccion'])}</td>
-          <td>#{d['EsPorcentual'].to_i == 1 ? 'Si' : 'No'}</td>
+          <td>#{es_porcentual ? 'Si' : 'No'}</td>
           <td class='text-right'>#{h(porcentaje)}</td>
           <td class='text-right'>#{money(d['MontoTotalMes'])}</td>
         </tr>"

@@ -140,10 +140,15 @@ CREATE TABLE dbo.Usuario (
     Username     VARCHAR(100) NOT NULL,
     PasswordHash VARCHAR(256) NOT NULL,
     Tipo         VARCHAR(50)  NOT NULL,
+    Activo       BIT          NOT NULL DEFAULT 1,
     CONSTRAINT PK_Usuario          PRIMARY KEY (Id),
     CONSTRAINT UQ_Usuario_Username UNIQUE (Username),
     CONSTRAINT CK_Usuario_Tipo     CHECK (Tipo IN ('administrador', 'empleado'))
 );
+GO
+
+IF COL_LENGTH('dbo.Usuario', 'Activo') IS NULL
+    ALTER TABLE dbo.Usuario ADD Activo BIT NOT NULL CONSTRAINT DF_Usuario_Activo DEFAULT 1;
 GO
 
 -- ============================================================
