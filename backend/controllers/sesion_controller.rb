@@ -19,6 +19,8 @@ post '/login' do
       # LOGIN EXITOSO
       session[:usuario]    = usuario['Username']
       session[:usuario_id]   = usuario['Id']
+      session[:empleado_id]  = usuario['IdEmpleado']
+      session[:tipo]         = usuario['Tipo']
       session[:login_error]  = nil
 
       # Validación estricta del tipo basado en el retorno exacto de la BD

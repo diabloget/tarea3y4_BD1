@@ -3,13 +3,12 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Dashboard — Planilla Obrera</title>
+        <title>Empleado - Planilla Obrera</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
             href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap"
             rel="stylesheet"
         />
-
         <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
         <style>
@@ -19,15 +18,18 @@
                 --border: #e2e0da;
                 --text: #1a1916;
                 --muted: #8a8880;
+                --muted2: #b5b3ae;
                 --accent: #2d5a4e;
                 --accent-h: #234840;
                 --error: #9b3a3a;
             }
+
             * {
                 box-sizing: border-box;
                 margin: 0;
                 padding: 0;
             }
+
             body {
                 font-family: "DM Sans", sans-serif;
                 background: var(--bg);
@@ -35,92 +37,306 @@
                 min-height: 100vh;
             }
 
-            /* Navbar sencilla */
-            nav {
+            header {
                 background: var(--surface);
                 border-bottom: 1px solid var(--border);
-                padding: 1rem 2rem;
+                height: 58px;
+                padding: 0 2rem;
                 display: flex;
-                justify-content: space-between;
                 align-items: center;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+                justify-content: space-between;
+                gap: 1rem;
             }
+
             .brand {
                 font-family: "DM Serif Display", serif;
-                font-size: 1.5rem;
+                font-size: 1.2rem;
+                color: var(--accent);
+                white-space: nowrap;
+            }
+
+            .header-actions {
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+
+            main {
+                width: min(1180px, calc(100vw - 4rem));
+                margin: 2.25rem auto 5rem;
+                display: grid;
+                gap: 2.25rem;
+            }
+
+            .section-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 1rem;
+                margin-bottom: 0.85rem;
+            }
+
+            h1,
+            h2 {
+                font-family: "DM Serif Display", serif;
+                font-weight: 400;
+                color: var(--text);
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            h2 {
+                font-size: 1.2rem;
+            }
+
+            .muted {
+                color: var(--muted);
+                font-size: 0.86rem;
+            }
+
+            .table-wrapper {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                overflow-x: auto;
+            }
+
+            .table-wrapper.compact {
+                border-color: #d6d3ca;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+            }
+
+            th {
+                background: var(--bg);
+                border-bottom: 1px solid var(--border);
+                color: var(--muted);
+                font-size: 0.65rem;
+                font-weight: 500;
+                letter-spacing: 0.08em;
+                padding: 0.75rem 1rem;
+                text-align: left;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            td {
+                border-bottom: 1px solid var(--border);
+                padding: 0.78rem 1rem;
+                vertical-align: top;
+            }
+
+            tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+            tbody tr:not(.detail-row):hover {
+                background: #faf9f7;
+            }
+
+            small {
+                color: var(--muted);
+                font-size: 0.76rem;
+            }
+
+            .text-center {
+                text-align: center;
+            }
+
+            .text-right {
+                text-align: right;
+            }
+
+            .strong {
+                font-weight: 500;
+                color: var(--text);
+            }
+
+            .btn-sm,
+            .amount-link {
+                font-family: "DM Sans", sans-serif;
+                cursor: pointer;
+            }
+
+            .btn-sm {
+                border: 1px solid transparent;
+                font-size: 0.72rem;
+                font-weight: 500;
+                letter-spacing: 0.05em;
+                padding: 0.45rem 0.9rem;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            .btn-outline {
+                background: transparent;
+                border-color: var(--border);
+                color: var(--muted);
+            }
+
+            .btn-outline:hover {
+                border-color: var(--accent);
                 color: var(--accent);
             }
 
-            .btn-logout {
-                background: var(--error);
-                color: #fff;
-                border: none;
-                font-family: "DM Sans", sans-serif;
-                font-size: 0.85rem;
+            .amount-link {
+                background: transparent;
+                border: 0;
+                color: var(--accent);
+                font-size: 0.875rem;
                 font-weight: 500;
-                padding: 0.5rem 1rem;
-                cursor: pointer;
-                border-radius: 4px;
-                transition: opacity 0.15s;
-            }
-            .btn-logout:hover {
-                opacity: 0.8;
+                padding: 0;
+                text-decoration: underline;
+                text-underline-offset: 3px;
             }
 
-            /* Contenedor principal */
-            .container {
-                max-width: 800px;
-                margin: 3rem auto;
+            .amount-link:hover {
+                color: var(--accent-h);
+            }
+
+            .amount-link.debit {
+                color: var(--error);
+            }
+
+            .detail-row td {
+                background: #fbfaf8;
+                border-bottom: 1px solid var(--border);
+                padding: 0;
+            }
+
+            .detail-row td:empty {
+                border-bottom: 0;
+                padding: 0;
+            }
+
+            .detail-panel {
+                padding: 1rem;
+            }
+
+            .detail-title {
+                color: var(--accent);
+                font-size: 0.68rem;
+                font-weight: 500;
+                letter-spacing: 0.08em;
+                margin-bottom: 0.65rem;
+                text-transform: uppercase;
+            }
+
+            .empty-row td {
+                color: var(--muted2);
+                font-style: italic;
                 padding: 2rem;
-                background: var(--surface);
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                box-shadow: 0 2px 24px rgba(0, 0, 0, 0.04);
+                text-align: center;
             }
-            h1 {
-                font-family: "DM Serif Display", serif;
-                color: var(--text);
-                margin-bottom: 1rem;
+
+            .htmx-request.amount-link {
+                opacity: 0.55;
             }
-            p {
-                color: var(--muted);
-                line-height: 1.6;
-                margin-bottom: 1.5rem;
+
+            @media (max-width: 760px) {
+                header {
+                    height: auto;
+                    align-items: flex-start;
+                    padding: 1rem;
+                    flex-direction: column;
+                }
+
+                .header-actions {
+                    justify-content: flex-start;
+                }
+
+                main {
+                    width: min(100vw - 1.5rem, 1180px);
+                    margin-top: 1.25rem;
+                }
             }
         </style>
     </head>
+
     <body>
-        <nav>
+        <header>
             <div class="brand">Planilla Obrera</div>
-            <form action="/logout" method="POST" style="margin: 0">
-                <button class="btn-logout" type="submit">Cerrar Sesión</button>
-            </form>
-        </nav>
+            <div class="header-actions">
+                <form action="/logout" method="POST" style="margin: 0">
+                    <button class="btn-sm btn-outline" type="submit">
+                        Cerrar sesión
+                    </button>
+                </form>
+            </div>
+        </header>
 
-        <div class="container">
-            <h1>¡Bienvenido al Sistema!</h1>
-            <p>
-                Has iniciado sesión exitosamente. esto es solo un placeholder
-                para verificar que todo funca
-            </p>
+        <main>
+            <section>
+                <div class="section-head">
+                    <div>
+                        <h1>Planillas Semanales</h1>
+                        <p class="muted">
+                            Los montos de salario bruto y deducciones abren el
+                            detalle de la semana.
+                        </p>
+                    </div>
+                </div>
 
-            <p><strong>Por hacer:</strong></p>
-            <ul
-                style="
-                    color: var(--muted);
-                    margin-left: 1.5rem;
-                    line-height: 1.6;
-                "
-            >
-                <li>
-                    Si el usuario fuera Administrador, aquí mostraremos la tabla
-                    con la lista de empleados ordenada alfabéticamente
-                </li>
-                <li>
-                    Si el usuario es Empleado, aquí mostraremos el grid con su
-                    planilla semanal, horas extras y deducciones.
-                </li>
-            </ul>
-        </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Período</th>
+                                <th class="text-center">Horas Ord.</th>
+                                <th class="text-center">Extra Normal</th>
+                                <th class="text-center">Extra Doble</th>
+                                <th class="text-right">Salario Bruto</th>
+                                <th class="text-right">Total Deducciones</th>
+                                <th class="text-right">Salario Neto</th>
+                            </tr>
+                        </thead>
+                        <tbody hx-get="/empleado/planillas" hx-trigger="load">
+                            <tr class="empty-row">
+                                <td colspan="7">Cargando planillas...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section>
+                <div class="section-head">
+                    <div>
+                        <h2>Planillas Mensuales</h2>
+                        <p class="muted">
+                            El total de deducciones muestra su desglose mensual.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Período</th>
+                                <th class="text-right">Salario Bruto</th>
+                                <th class="text-right">Total Deducciones</th>
+                                <th class="text-right">Salario Neto</th>
+                            </tr>
+                        </thead>
+                        <tbody
+                            hx-get="/empleado/planillas-mensuales"
+                            hx-trigger="load"
+                        >
+                            <tr class="empty-row">
+                                <td colspan="4">Cargando planillas...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </body>
 </html>

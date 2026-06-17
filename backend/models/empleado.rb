@@ -1,7 +1,8 @@
 class Empleado
-  attr_accessor :valor_doc, :nombre, :puesto
+  attr_accessor :id, :valor_doc, :nombre, :puesto
 
   def initialize(attributes = {})
+    @id        = attributes[:id]
     @valor_doc = attributes[:valor_doc]
     @nombre    = attributes[:nombre]
     @puesto    = attributes[:puesto]
@@ -13,6 +14,7 @@ class Empleado
 
     rows.map do |row|
       Empleado.new(
+        id:        row['Id'],
         valor_doc: row['ValorDocumento'],
         nombre:    row['NombreEmpleado'] || row['Nombre'],
         puesto:    row['Puesto']

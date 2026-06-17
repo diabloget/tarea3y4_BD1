@@ -58,6 +58,13 @@ BEGIN
     INSERT INTO dbo.BitacoraEvento (IdTipoEvento, IdUsuario, IP, Descripcion)
     VALUES (1, @vIdUsuario, @inIP, 'Login exitoso');
 
-    SELECT Id, Username, Tipo FROM dbo.Usuario WHERE Id = @vIdUsuario;
+    SELECT
+        U.Id,
+        U.Username,
+        U.Tipo,
+        E.Id AS IdEmpleado
+    FROM dbo.Usuario U
+    LEFT JOIN dbo.Empleado E ON E.IdUsuario = U.Id
+    WHERE U.Id = @vIdUsuario;
 END;
 GO
