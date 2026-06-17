@@ -264,6 +264,8 @@
         <header>
             <div class="brand">Planilla Obrera</div>
             <div class="header-actions">
+                <span class="muted">Empleado: {{empleado_nombre}}</span>
+                {{volver_admin}}
                 <form action="/logout" method="POST" style="margin: 0">
                     <button class="btn-sm btn-outline" type="submit">
                         Cerrar sesión

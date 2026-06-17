@@ -140,17 +140,42 @@ get '/api/empleados' do
 
   html = ""
   if empleados.empty?
-    html += "<tr class='empty-row'><td colspan='3'>No se encontraron empleados.</td></tr>"
+    html += "<tr class='empty-row'><td colspan='4'>No se encontraron empleados.</td></tr>"
   else
     empleados.each do |emp|
-      html += "<tr>"
+      html += "<tr data-id='#{emp.id.to_i}'>"
       html += "<td>#{h(emp.valor_doc)}</td>"
       html += "<td>#{h(emp.nombre)}</td>"
       html += "<td>#{h(emp.puesto)}</td>"
+      html += "<td><button class='btn-sm btn-accent' type='button' hx-post='/admin/impersonar/#{emp.id.to_i}'>Impersonar</button></td>"
       html += "</tr>"
     end
   end
   html
+end
+
+post '/admin/impersonar/:id' do
+  require_login
+  halt 403 unless session[:tipo] == 'administrador'
+
+  id_empleado = params[:id].to_i
+  empleado = Empleado.listar.find { |emp| emp.id.to_i == id_empleado }
+  halt 404, 'Empleado no encontrado' unless empleado
+
+  session[:impersonando] = id_empleado
+  headers 'HX-Redirect' => '/'
+  status 200
+  body ''
+end
+
+post '/admin/volver' do
+  require_login
+  halt 403 unless session[:tipo] == 'administrador'
+
+  session.delete(:impersonando)
+  headers 'HX-Redirect' => '/admin/empleados'
+  status 200
+  body ''
 end
 
 # Ruta POST para cargar el catálogo base (Datos.xml)

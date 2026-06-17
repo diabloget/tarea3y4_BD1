@@ -36,7 +36,23 @@ end
 get '/' do
   require_login
   no_cache
-  File.read("#{VIEWS}/index.html")
+  html = File.read("#{VIEWS}/index.html")
+  empleado_nombre = session[:usuario].to_s
+
+  if session[:impersonando]
+    row = Database.execute_sp(:sp_listar_empleado, { FiltroNombre: nil })
+                  .find { |emp| emp['Id'].to_i == session[:impersonando].to_i }
+    empleado_nombre = row['NombreEmpleado'] || row['Nombre'] if row
+  end
+
+  volver_admin = if session[:impersonando]
+    '<button class="btn-sm btn-outline" type="button" hx-post="/admin/volver">Volver al admin</button>'
+  else
+    ''
+  end
+
+  html.gsub('{{empleado_nombre}}', Rack::Utils.escape_html(empleado_nombre.to_s))
+      .gsub('{{volver_admin}}', volver_admin)
 end
 
 
