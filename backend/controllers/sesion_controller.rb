@@ -4,7 +4,6 @@ post '/login' do
   username = params[:username].to_s.strip
   password = params[:password].to_s.strip
 
-  # Si faltan datos, devolvemos el HTML del error directamente
   if username.empty? || password.empty?
     status 200
     return "<p class='login-error'>Usuario y contraseña son requeridos.</p>"
@@ -16,31 +15,28 @@ post '/login' do
     usuario   = resultado[:usuario]
 
     if codigo == 0 && usuario
-      # LOGIN EXITOSO
       session[:usuario]    = usuario['Username']
       session[:usuario_id]   = usuario['Id']
       session[:empleado_id]  = usuario['IdEmpleado']
       session[:tipo]         = usuario['Tipo']
       session[:login_error]  = nil
 
-      # Validación estricta del tipo basado en el retorno exacto de la BD
       if usuario['Tipo'] == 'administrador'
         headers 'HX-Redirect' => '/admin/empleados'
       elsif usuario['Tipo'] == 'empleado'
         headers 'HX-Redirect' => '/'
       else
-        # En caso de que venga otro tipo no mapeado, lo mandamos al index por seguridad
         headers 'HX-Redirect' => '/'
       end
 
       status 200
       body ""
     elsif codigo == 50003
-      # BLOQUEO DE INTENTOS
+      # Demasiados intentos fallidos. Esperá 10 minutos.
       status 200
       "<p class='login-error'>Demasiados intentos fallidos. Esperá 10 minutos.</p>"
     else
-      # CONTRASEÑA INCORRECTA O USUARIO NO EXISTE
+      # Contraseña incorrecta o usuario no existe
       status 200
       mensaje = codigo == 50001 ? 'El usuario no existe.' : 'Contraseña incorrecta.'
       "<p class='login-error'>#{mensaje}</p>"

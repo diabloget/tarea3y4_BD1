@@ -4,17 +4,17 @@
 		PUESTOS
 	===================================================== -->
 	<Puestos>
-		<Puesto Nombre="Cajero" SalarioxHora="11.00"/>
-		<Puesto Nombre="Camarero" SalarioxHora="10.00"/>
-		<Puesto Nombre="Cuidador" SalarioxHora="13.50"/>
-		<Puesto Nombre="Conductor" SalarioxHora="15.00"/>
-		<Puesto Nombre="Asistente" SalarioxHora="11.00"/>
-		<Puesto Nombre="Recepcionista" SalarioxHora="12.00"/>
-		<Puesto Nombre="Fontanero" SalarioxHora="13.00"/>
-		<Puesto Nombre="Niñera" SalarioxHora="12.00"/>
-		<Puesto Nombre="Conserje" SalarioxHora="11.00"/>
-		<Puesto Nombre="Albañil" SalarioxHora="10.50"/>
-		<Puesto Nombre="Electricista" SalarioxHora="14.00"/>
+		<Puesto Nombre="Cajero"        SalarioxHora="1100.00"/>
+        <Puesto Nombre="Camarero"      SalarioxHora="1000.00"/>
+        <Puesto Nombre="Cuidador"      SalarioxHora="1350.00"/>
+        <Puesto Nombre="Conductor"     SalarioxHora="1500.00"/>
+        <Puesto Nombre="Asistente"     SalarioxHora="1100.00"/>
+        <Puesto Nombre="Recepcionista" SalarioxHora="1200.00"/>
+        <Puesto Nombre="Fontanero"     SalarioxHora="1300.00"/>
+        <Puesto Nombre="Niñera"        SalarioxHora="1200.00"/>
+        <Puesto Nombre="Conserje"      SalarioxHora="1100.00"/>
+        <Puesto Nombre="Albañil"       SalarioxHora="1050.00"/>
+        <Puesto Nombre="Electricista"  SalarioxHora="1200.00"/>
 	</Puestos>
 
 	<!-- =====================================================
@@ -160,4 +160,4 @@
 		<error Codigo="50010" Descripcion="Valor de documento de identidad no alfabético"/>
 		<error Codigo="50011" Descripcion="Monto del movimiento rechazado pues si se aplicar el saldo seria negativo."/>
 	</Error>
-</Datos> 
+</Datos>

@@ -15,13 +15,13 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE Id = @inIdUsuario)
     BEGIN
-        SET @outResultCode = 50001; -- Error: Usuario no encontrado
+        SET @outResultCode = 50001;
         RETURN;
     END
 
     INSERT INTO dbo.BitacoraEvento (IdTipoEvento, IdUsuario, IP, Descripcion)
     VALUES (4, @inIdUsuario, @inIP, 'Logout exitoso');
 
-    SET @outResultCode = 0; -- Operación exitosa
+    SET @outResultCode = 0;
 END;
 GO

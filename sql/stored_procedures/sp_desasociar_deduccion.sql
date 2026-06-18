@@ -2,105 +2,121 @@ USE PlanillaObrera;
 GO
 
 IF OBJECT_ID('dbo.sp_desasociar_deduccion', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE dbo.sp_desasociar_deduccion;
+END
 GO
 
 CREATE PROCEDURE dbo.sp_desasociar_deduccion
-    @ValorDocumento  VARCHAR(50),
-    @NombreDeduccion VARCHAR(100),
-    @OutRespuesta    INT OUTPUT
+    @inValorDocumento VARCHAR(50)
+    , @inNombreDeduccion VARCHAR(100)
+    , @inFechaFin DATE = NULL
+    , @outResultCode INT = NULL OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @IdEmpleado INT;
-    DECLARE @IdUsuario INT;
-    DECLARE @IdTipoDeduccion INT;
-    DECLARE @IdTipoEvento INT;
-    DECLARE @InicioTransaccionPropia BIT = 0;
+    DECLARE @idEmpleado INT;
+    DECLARE @idUsuario INT;
+    DECLARE @idTipoDeduccion INT;
+    DECLARE @idTipoEvento INT;
+    DECLARE @fechaFin DATE;
 
-    SET @OutRespuesta = 0;
+    SET @outResultCode = 0;
+    SET @fechaFin = ISNULL(@inFechaFin, CAST(GETDATE() AS DATE));
 
     SELECT
-        @IdEmpleado = E.Id,
-        @IdUsuario = E.IdUsuario
-    FROM dbo.Empleado E
-    WHERE E.ValorDocumento = @ValorDocumento
-      AND E.Activo = 1;
+        @idEmpleado = E.Id
+        , @idUsuario = E.IdUsuario
+    FROM dbo.Empleado AS E
+    WHERE (E.ValorDocumento = @inValorDocumento)
+        AND (E.Activo = 1);
 
-    IF @IdEmpleado IS NULL
+    SELECT
+        @idTipoDeduccion = TD.Id
+    FROM dbo.TipoDeduccion AS TD
+    WHERE (TD.Nombre = @inNombreDeduccion);
+
+    SELECT TOP (1)
+        @idTipoEvento = TE.Id
+    FROM dbo.TipoEvento AS TE
+    WHERE (TE.Nombre = 'Update exitoso')
+    ORDER BY
+        TE.Id ASC;
+
+    IF (@idTipoEvento IS NULL)
     BEGIN
-        SET @OutRespuesta = 50001;
+        SELECT TOP (1)
+            @idTipoEvento = TE.Id
+        FROM dbo.TipoEvento AS TE
+        ORDER BY
+            TE.Id ASC;
+    END
+
+    IF (@idEmpleado IS NULL)
+    BEGIN
+        SET @outResultCode = 50001;
         RETURN;
     END
 
-    SELECT @IdTipoDeduccion = TD.Id
-    FROM dbo.TipoDeduccion TD
-    WHERE TD.Nombre = @NombreDeduccion;
-
-    IF @IdTipoDeduccion IS NULL
+    IF (
+        @idTipoDeduccion IS NULL
+        OR @idTipoEvento IS NULL
+    )
     BEGIN
-        SET @OutRespuesta = 50008;
+        SET @outResultCode = 50008;
         RETURN;
     END
 
     BEGIN TRY
-        IF @@TRANCOUNT = 0
-        BEGIN
-            BEGIN TRANSACTION;
-            SET @InicioTransaccionPropia = 1;
-        END
-        ELSE
-            SAVE TRANSACTION sp_desasociar_ded_sp;
+        BEGIN TRANSACTION;
 
-        UPDATE dbo.DeduccionEmpleado
-        SET FechaFin = GETDATE()
-        WHERE IdEmpleado = @IdEmpleado
-          AND IdTipoDeduccion = @IdTipoDeduccion
-          AND FechaFin IS NULL;
+        UPDATE DE
+        SET
+            DE.FechaFin = @fechaFin
+        FROM dbo.DeduccionEmpleado AS DE
+        WHERE (DE.IdEmpleado = @idEmpleado)
+            AND (DE.IdTipoDeduccion = @idTipoDeduccion)
+            AND (DE.FechaFin IS NULL);
 
-        SELECT TOP 1 @IdTipoEvento = Id
-        FROM dbo.TipoEvento
-        WHERE Nombre = 'Update exitoso';
-
-        IF @IdTipoEvento IS NULL
-        BEGIN
-            SELECT TOP 1 @IdTipoEvento = Id
-            FROM dbo.TipoEvento
-            ORDER BY Id;
-        END
-
-        IF @IdTipoEvento IS NULL
-        BEGIN
-            THROW 50008, 'No existe un tipo de evento para registrar la desasociacion de deduccion.', 1;
-        END
-
-        INSERT INTO dbo.BitacoraEvento (IdTipoEvento, IdUsuario, IP, Descripcion)
+        INSERT INTO dbo.BitacoraEvento (
+            IdTipoEvento
+            , IdUsuario
+            , IP
+            , Descripcion
+        )
         VALUES (
-            @IdTipoEvento,
-            @IdUsuario,
-            '127.0.0.1',
-            'Desasociacion de deduccion "' + @NombreDeduccion + '" para empleado con documento: ' + @ValorDocumento
+            @idTipoEvento
+            , @idUsuario
+            , '127.0.0.1'
+            , 'Desasociacion de deduccion "'
+                + @inNombreDeduccion
+                + '" para empleado con documento: '
+                + @inValorDocumento
         );
 
-        IF @InicioTransaccionPropia = 1
-            COMMIT TRANSACTION;
+        COMMIT TRANSACTION;
 
-        SET @OutRespuesta = 0;
+        SET @outResultCode = 0;
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
+        IF (@@TRANCOUNT > 0)
         BEGIN
-            IF @InicioTransaccionPropia = 1 OR XACT_STATE() = -1
-                ROLLBACK TRANSACTION;
-            ELSE
-                ROLLBACK TRANSACTION sp_desasociar_ded_sp;
+            ROLLBACK TRANSACTION;
         END
 
-        INSERT INTO dbo.DBError (Mensaje, Severidad, Estado)
-        VALUES (ERROR_MESSAGE(), ERROR_SEVERITY(), ERROR_STATE());
+        INSERT INTO dbo.DBError (
+            Mensaje
+            , Severidad
+            , Estado
+        )
+        VALUES (
+            ERROR_MESSAGE()
+            , ERROR_SEVERITY()
+            , ERROR_STATE()
+        );
 
-        SET @OutRespuesta = 50008;
+        SET @outResultCode = 50008;
     END CATCH
 END
 GO

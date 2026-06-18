@@ -2,92 +2,108 @@ USE PlanillaObrera;
 GO
 
 IF OBJECT_ID('dbo.sp_eliminar_empleado', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE dbo.sp_eliminar_empleado;
+END
 GO
 
 CREATE PROCEDURE dbo.sp_eliminar_empleado
-    @ValorDocumento VARCHAR(50),
-    @OutRespuesta   INT OUTPUT
+    @inValorDocumento VARCHAR(50)
+    , @outResultCode INT = NULL OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    DECLARE @IdEmpleado           INT;
-    DECLARE @IdUsuario            INT;
-    DECLARE @IdTipoEventoEliminar INT;
-    DECLARE @InicioTransaccionPropia BIT = 0;
+    DECLARE @idEmpleado INT;
+    DECLARE @idUsuario INT;
+    DECLARE @idTipoEvento INT;
+
+    SET @outResultCode = 0;
 
     SELECT
-        @IdEmpleado = E.Id,
-        @IdUsuario  = E.IdUsuario
-    FROM dbo.Empleado E
-    WHERE E.ValorDocumento = @ValorDocumento;
+        @idEmpleado = E.Id
+        , @idUsuario = E.IdUsuario
+    FROM dbo.Empleado AS E
+    WHERE (E.ValorDocumento = @inValorDocumento);
 
-    IF @IdEmpleado IS NULL
+    SELECT TOP (1)
+        @idTipoEvento = TE.Id
+    FROM dbo.TipoEvento AS TE
+    WHERE (TE.Nombre = 'Eliminar empleado')
+    ORDER BY
+        TE.Id ASC;
+
+    IF (@idTipoEvento IS NULL)
     BEGIN
-        SET @OutRespuesta = 50001; -- Empleado no existe
+        SELECT TOP (1)
+            @idTipoEvento = TE.Id
+        FROM dbo.TipoEvento AS TE
+        ORDER BY
+            TE.Id ASC;
+    END
+
+    IF (@idEmpleado IS NULL)
+    BEGIN
+        SET @outResultCode = 50001;
+        RETURN;
+    END
+
+    IF (@idTipoEvento IS NULL)
+    BEGIN
+        SET @outResultCode = 50008;
         RETURN;
     END
 
     BEGIN TRY
-        IF @@TRANCOUNT = 0
-        BEGIN
-            BEGIN TRANSACTION;
-            SET @InicioTransaccionPropia = 1;
-        END
-        ELSE
-            SAVE TRANSACTION sp_eliminar_empleado_savepoint;
+        BEGIN TRANSACTION;
 
-        UPDATE dbo.Empleado
-        SET Activo = 0
-        WHERE Id = @IdEmpleado;
+        UPDATE E
+        SET
+            E.Activo = 0
+        FROM dbo.Empleado AS E
+        WHERE (E.Id = @idEmpleado);
 
-        IF COL_LENGTH('dbo.Usuario', 'Activo') IS NOT NULL
-        BEGIN
-            UPDATE dbo.Usuario
-            SET Activo = 0
-            WHERE Id = @IdUsuario;
-        END
-        ELSE
-        BEGIN
-            THROW 50008, 'La columna Activo no existe en dbo.Usuario.', 1;
-        END
+        UPDATE U
+        SET
+            U.Activo = 0
+        FROM dbo.Usuario AS U
+        WHERE (U.Id = @idUsuario);
 
-        SELECT TOP 1 @IdTipoEventoEliminar = Id
-        FROM dbo.TipoEvento
-        WHERE Nombre = 'Eliminar empleado';
-
-        IF @IdTipoEventoEliminar IS NULL
-        BEGIN
-            THROW 50008, 'No existe un IdTipoEvento para "Eliminar empleado".', 1;
-        END
-
-        INSERT INTO dbo.BitacoraEvento (IdTipoEvento, IdUsuario, IP, Descripcion)
+        INSERT INTO dbo.BitacoraEvento (
+            IdTipoEvento
+            , IdUsuario
+            , IP
+            , Descripcion
+        )
         VALUES (
-            @IdTipoEventoEliminar,
-            @IdUsuario,
-            '127.0.0.1',
-            'Baja lógica de empleado con documento: ' + @ValorDocumento
+            @idTipoEvento
+            , @idUsuario
+            , '127.0.0.1'
+            , 'Baja logica de empleado con documento: ' + @inValorDocumento
         );
 
-        IF @InicioTransaccionPropia = 1
-            COMMIT TRANSACTION;
+        COMMIT TRANSACTION;
 
-        SET @OutRespuesta = 0;
+        SET @outResultCode = 0;
     END TRY
     BEGIN CATCH
-        IF XACT_STATE() <> 0
+        IF (@@TRANCOUNT > 0)
         BEGIN
-            IF @InicioTransaccionPropia = 1 OR XACT_STATE() = -1
-                ROLLBACK TRANSACTION;
-            ELSE
-                ROLLBACK TRANSACTION sp_eliminar_empleado_savepoint;
+            ROLLBACK TRANSACTION;
         END
 
-        INSERT INTO dbo.DBError (Mensaje, Severidad, Estado)
-        VALUES (ERROR_MESSAGE(), ERROR_SEVERITY(), ERROR_STATE());
+        INSERT INTO dbo.DBError (
+            Mensaje
+            , Severidad
+            , Estado
+        )
+        VALUES (
+            ERROR_MESSAGE()
+            , ERROR_SEVERITY()
+            , ERROR_STATE()
+        );
 
-        SET @OutRespuesta = 50008;
+        SET @outResultCode = 50008;
     END CATCH
 END
 GO

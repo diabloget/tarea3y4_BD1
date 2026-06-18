@@ -126,14 +126,13 @@ helpers do
   end
 end
 
-# Ruta principal para cargar la página de empleados
+# Ruta principal para cargar datos e impersonar empleados
 get '/admin/empleados' do
   require_login
   no_cache
   File.read("#{VIEWS}/admin_empleados.html")
 end
 
-# Ruta GET para filtrar y listar empleados para la tabla HTMX
 get '/api/empleados' do
   filtro = params[:filtro]
   empleados = Empleado.listar(filtro)
@@ -178,7 +177,7 @@ post '/admin/volver' do
   body ''
 end
 
-# Ruta POST para cargar el catálogo base (Datos.xml)
+# Ruta POST para cargar el catálogo base (datosCarga.xml)
 post '/cargar-datos' do
   if params[:archivo_datos] && params[:archivo_datos][:tempfile]
     xml_content = params[:archivo_datos][:tempfile].read
@@ -194,7 +193,6 @@ post '/cargar-datos' do
   end
 end
 
-# Ruta de prueba para cargar XML
 post '/cargar-xml' do
   if params[:archivo_xml] && params[:archivo_xml][:tempfile]
     xml_content = params[:archivo_xml][:tempfile].read
@@ -220,7 +218,6 @@ get '/admin/planillas' do
       return "<tr class='empty-row'><td colspan='6'>No hay datos.</td></tr>"
     end
 
-    # Tu lógica de renderizado...
     resultado.map do |p|
       "<tr>
         <td>#{p['EmpleadoNombre']}<br><small>Doc: #{p['EmpleadoDocumento']}</small></td>
@@ -243,7 +240,7 @@ get '/empleado/planillas' do
 
   planillas = Database.execute_sp(
     :sp_consultar_planillas_semanales_empleado,
-    IdEmpleado: empleado_consulta_id
+    inIdEmpleado: empleado_consulta_id
   )
 
   return render_empty_row(8, 'No hay planillas semanales.') if planillas.empty?
@@ -281,8 +278,8 @@ get '/empleado/planilla/:id_semana/detalle' do
 
   rows = Database.execute_sp(
     :sp_consultar_detalle_semana,
-    IdEmpleado: empleado_consulta_id,
-    IdSemana: params[:id_semana].to_i
+    inIdEmpleado: empleado_consulta_id,
+    inIdSemana: params[:id_semana].to_i
   )
 
   movimientos = rows.select { |row| row.key?('TipoMovimiento') }
@@ -306,7 +303,7 @@ get '/empleado/planillas-mensuales' do
 
   planillas = Database.execute_sp(
     :sp_consultar_planillas_mensuales_empleado,
-    IdEmpleado: empleado_consulta_id
+    inIdEmpleado: empleado_consulta_id
   )
 
   return render_empty_row(4, 'No hay planillas mensuales.') if planillas.empty?
@@ -336,8 +333,8 @@ get '/empleado/planilla-mensual/:id_mes/detalle' do
 
   deducciones = Database.execute_sp(
     :sp_consultar_detalle_mes,
-    IdEmpleado: empleado_consulta_id,
-    IdMes: params[:id_mes].to_i
+    inIdEmpleado: empleado_consulta_id,
+    inIdMes: params[:id_mes].to_i
   )
 
   render_monthly_deductions(deducciones)

@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /db-init
 
-# aqui van los sps y demas
 COPY schema.sql                       ./schema.sql
 COPY stored_procedures/sp_login.sql                   ./sp_login.sql
 COPY stored_procedures/sp_logout.sql                  ./sp_logout.sql

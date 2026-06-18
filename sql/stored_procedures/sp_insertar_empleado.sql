@@ -2,94 +2,145 @@ USE PlanillaObrera;
 GO
 
 IF OBJECT_ID('dbo.sp_insertar_empleado', 'P') IS NOT NULL
+BEGIN
     DROP PROCEDURE dbo.sp_insertar_empleado;
+END
 GO
 
 CREATE PROCEDURE dbo.sp_insertar_empleado
-    @ValorDocumento    VARCHAR(50),
-    @Nombre            VARCHAR(100),
-    @NombrePuesto      VARCHAR(100),
-    @CuentaBancaria    VARCHAR(100),
-    @FechaContratacion DATE,
-    @Username          VARCHAR(64) = NULL,
-    @Password          VARCHAR(128) = NULL,
-    @OutRespuesta      INT OUTPUT
+    @inValorDocumento VARCHAR(50)
+    , @inNombre VARCHAR(100)
+    , @inNombrePuesto VARCHAR(100)
+    , @inCuentaBancaria VARCHAR(100)
+    , @inFechaContratacion DATE
+    , @inUsername VARCHAR(64) = NULL
+    , @inPassword VARCHAR(128) = NULL
+    , @outResultCode INT = NULL OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @IdPuesto        INT;
-    DECLARE @IdUsuario       INT;
-    DECLARE @IdDepartamento  INT;
-    DECLARE @IdTipoDocumento INT;
 
-    -- Manejo del fallback para credenciales (si vienen vacíos o NULL, usan el documento)
-    DECLARE @RealUsername VARCHAR(64) = ISNULL(NULLIF(@Username, ''), @ValorDocumento);
-    DECLARE @RealPassword VARCHAR(128) = ISNULL(NULLIF(@Password, ''), @ValorDocumento);
+    DECLARE @idPuesto INT;
+    DECLARE @idDepartamento INT;
+    DECLARE @idTipoDocumento INT;
+    DECLARE @idUsuario INT;
+    DECLARE @realUsername VARCHAR(64);
+    DECLARE @realPassword VARCHAR(128);
 
-    IF EXISTS (SELECT 1 FROM dbo.Empleado WHERE ValorDocumento = @ValorDocumento)
+    SET @outResultCode = 0;
+    SET @realUsername = ISNULL(NULLIF(@inUsername, ''), @inValorDocumento);
+    SET @realPassword = ISNULL(NULLIF(@inPassword, ''), @inValorDocumento);
+
+    SELECT
+        @idPuesto = P.Id
+    FROM dbo.Puesto AS P
+    WHERE (P.Nombre = @inNombrePuesto);
+
+    SELECT TOP (1)
+        @idDepartamento = D.Id
+    FROM dbo.Departamento AS D
+    ORDER BY
+        D.Id ASC;
+
+    SELECT TOP (1)
+        @idTipoDocumento = TD.Id
+    FROM dbo.TipoDocIdentidad AS TD
+    ORDER BY
+        TD.Id ASC;
+
+    IF (EXISTS (
+        SELECT
+            1
+        FROM dbo.Empleado AS E
+        WHERE (E.ValorDocumento = @inValorDocumento)
+    ))
     BEGIN
-        SET @OutRespuesta = 50004; -- Documento repetido
+        SET @outResultCode = 50004;
         RETURN;
     END
 
-    IF EXISTS (SELECT 1 FROM dbo.Empleado WHERE Nombre = @Nombre)
+    IF (EXISTS (
+        SELECT
+            1
+        FROM dbo.Empleado AS E
+        WHERE (E.Nombre = @inNombre)
+    ))
     BEGIN
-        SET @OutRespuesta = 50005; -- Nombre repetido
+        SET @outResultCode = 50005;
         RETURN;
     END
 
-    SELECT @IdPuesto = Id FROM dbo.Puesto WHERE Nombre = @NombrePuesto;
-    SELECT TOP 1 @IdDepartamento  = Id FROM dbo.Departamento;
-    SELECT TOP 1 @IdTipoDocumento = Id FROM dbo.TipoDocIdentidad;
-
-    IF @IdPuesto IS NULL OR @IdDepartamento IS NULL OR @IdTipoDocumento IS NULL
+    IF (
+        @idPuesto IS NULL
+        OR @idDepartamento IS NULL
+        OR @idTipoDocumento IS NULL
+    )
     BEGIN
-        SET @OutRespuesta = 50008; -- Datos de referencia no encontrados
+        SET @outResultCode = 50008;
         RETURN;
     END
 
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        -- Se insertan las credenciales extraídas
-        INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
-        VALUES (@RealUsername, @RealPassword, 'empleado');
-
-        SET @IdUsuario = SCOPE_IDENTITY();
-
-        INSERT INTO dbo.Empleado (
-            IdPuesto,
-            IdDepartamento,
-            IdTipoDocumento,
-            IdUsuario,
-            ValorDocumento,
-            Nombre,
-            CuentaBancaria,
-            FechaContratacion,
-            Activo
+        INSERT INTO dbo.Usuario (
+            Username
+            , PasswordHash
+            , Tipo
         )
         VALUES (
-            @IdPuesto,
-            @IdDepartamento,
-            @IdTipoDocumento,
-            @IdUsuario,
-            @ValorDocumento,
-            @Nombre,
-            @CuentaBancaria,
-            @FechaContratacion,
-            1
+            @realUsername
+            , @realPassword
+            , 'empleado'
+        );
+
+        SET @idUsuario = SCOPE_IDENTITY();
+
+        INSERT INTO dbo.Empleado (
+            IdPuesto
+            , IdDepartamento
+            , IdTipoDocumento
+            , IdUsuario
+            , ValorDocumento
+            , Nombre
+            , CuentaBancaria
+            , FechaContratacion
+            , Activo
+        )
+        VALUES (
+            @idPuesto
+            , @idDepartamento
+            , @idTipoDocumento
+            , @idUsuario
+            , @inValorDocumento
+            , @inNombre
+            , @inCuentaBancaria
+            , @inFechaContratacion
+            , 1
         );
 
         COMMIT TRANSACTION;
-        SET @OutRespuesta = 0;
+
+        SET @outResultCode = 0;
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        IF (@@TRANCOUNT > 0)
+        BEGIN
+            ROLLBACK TRANSACTION;
+        END
 
-        INSERT INTO dbo.DBError (Mensaje, Severidad, Estado)
-        VALUES (ERROR_MESSAGE(), ERROR_SEVERITY(), ERROR_STATE());
+        INSERT INTO dbo.DBError (
+            Mensaje
+            , Severidad
+            , Estado
+        )
+        VALUES (
+            ERROR_MESSAGE()
+            , ERROR_SEVERITY()
+            , ERROR_STATE()
+        );
 
-        SET @OutRespuesta = 50008;
+        SET @outResultCode = 50008;
     END CATCH
 END
 GO

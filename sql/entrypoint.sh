@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# 1. Hilo en segundo plano: Espera y ejecuta los scripts
 (
   echo "Esperando a que SQL Server arranque para insertar datos..."
   for i in {1..30}; do
@@ -13,7 +12,6 @@
     sleep 2
   done
 
-  # Ejecución de todos tus archivos
   for script in schema.sql sp_login.sql sp_logout.sql sp_obtener_error.sql sp_listar_empleado.sql sp_insertar_empleado.sql sp_eliminar_empleado.sql sp_desasociar_deduccion.sql sp_procesar_operaciones_xml.sql sp_cargar_datos_xml.sql sp_listar_planillas_semanales.sql sp_consultar_planillas_semanales_empleado.sql sp_consultar_detalle_semana.sql sp_consultar_planillas_mensuales_empleado.sql sp_consultar_detalle_mes.sql; do
     if [ -f "/db-init/$script" ]; then
       /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -i /db-init/$script
@@ -28,7 +26,5 @@
   echo "================================================="
 ) &
 
-# 2. Hilo principal: Arrancar SQL Server como proceso maestro (PID 1)
-# El comando exec reemplaza bash por sqlservr, evitando el Error 101 del PAL.
 echo "Arrancando motor maestro de SQL Server..."
 exec /opt/mssql/bin/sqlservr

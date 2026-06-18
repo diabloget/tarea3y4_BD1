@@ -25,14 +25,12 @@ def no_cache
           'Expires'        => '0'
 end
 
-# Rutas públicas
 get '/login' do
   no_cache
   redirect '/' if session[:usuario]
   File.read("#{VIEWS}/login.html")
 end
 
-# Ruta protegida principal
 get '/' do
   require_login
   no_cache
@@ -40,7 +38,7 @@ get '/' do
   empleado_nombre = session[:usuario].to_s
 
   if session[:impersonando]
-    row = Database.execute_sp(:sp_listar_empleado, { FiltroNombre: nil })
+    row = Database.execute_sp(:sp_listar_empleado, { inFiltroNombre: nil })
                   .find { |emp| emp['Id'].to_i == session[:impersonando].to_i }
     empleado_nombre = row['NombreEmpleado'] || row['Nombre'] if row
   end
@@ -55,17 +53,12 @@ get '/' do
       .gsub('{{volver_admin}}', volver_admin)
 end
 
-
-# === AGREGA ESTA NUEVA RUTA AQUÍ ===
 get '/admin/empleados' do
   require_login
   no_cache
   File.read("#{VIEWS}/admin_empleados.html")
 end
 
-
-# Modelos
 require_relative 'models/empleado'
-# Controladores
 require_relative 'controllers/sesion_controller'
 require_relative 'controllers/empleados_controller'

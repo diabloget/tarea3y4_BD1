@@ -9,8 +9,7 @@ class Empleado
   end
 
   def self.listar(filtro = nil)
-    # Usamos execute_sp (sin salida)
-    rows = Database.execute_sp(:sp_listar_empleado, { FiltroNombre: filtro })
+    rows = Database.execute_sp(:sp_listar_empleado, { inFiltroNombre: filtro })
 
     rows.map do |row|
       Empleado.new(
