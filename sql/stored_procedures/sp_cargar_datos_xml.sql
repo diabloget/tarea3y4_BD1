@@ -80,6 +80,35 @@ BEGIN
 
     SET @outResultCode = 0;
 
+    BEGIN TRY
+
+        IF (
+            @inXmlData.exist('/Datos') = 0
+            OR @inXmlData.value('count(/Datos/Puestos/Puesto)', 'INT') <> 10
+            OR @inXmlData.value('count(/Datos/TiposJornada/TipoJornada)', 'INT') <> 3
+            OR @inXmlData.value('count(/Datos/Feriados/Feriado)', 'INT') <> 9
+            OR @inXmlData.value('count(/Datos/TiposEvento/TipoEvento)', 'INT') <> 23
+            OR @inXmlData.value('count(/Datos/TiposMovimiento/TipoMovimiento)', 'INT') <> 8
+            OR @inXmlData.value('count(/Datos/TiposDeduccion/TipoDeduccion)', 'INT') <> 4
+            OR @inXmlData.value('count(/Datos/Usuarios/Usuario)', 'INT') <> 3
+            OR @inXmlData.value('count(/Datos/Error/error)', 'INT') <> 13
+        )
+        BEGIN
+            INSERT INTO dbo.DBError (
+                Mensaje
+                , Severidad
+                , Estado
+            )
+            VALUES (
+                'Datos.xml no cumple el contrato oficial esperado'
+                , 16
+                , 1
+            );
+
+            SET @outResultCode = 50008;
+            RETURN;
+        END
+
     INSERT INTO @tipoDocumento (
         Id
         , Nombre
@@ -196,7 +225,56 @@ BEGIN
         , X.Item.value('@Descripcion', 'VARCHAR(255)') AS Descripcion
     FROM @inXmlData.nodes('/Datos/Error/error') AS X(Item);
 
-    BEGIN TRY
+        IF (
+            @inXmlData.exist('/Datos') = 0
+            OR (SELECT COUNT(1) FROM @puesto AS P) <> 10
+            OR (SELECT COUNT(1) FROM @tipoJornada AS TJ) <> 3
+            OR (SELECT COUNT(1) FROM @feriado AS F) <> 9
+            OR (SELECT COUNT(1) FROM @tipoEvento AS TE) <> 23
+            OR (SELECT COUNT(1) FROM @tipoMovimiento AS TM) <> 8
+            OR (SELECT COUNT(1) FROM @tipoDeduccion AS TD) <> 4
+            OR (SELECT COUNT(1) FROM @usuario AS U) <> 3
+            OR (SELECT COUNT(1) FROM @error AS E) <> 13
+            OR EXISTS (
+                SELECT
+                    1
+                FROM @tipoMovimiento AS TM
+                WHERE (TM.Accion NOT IN ('+', '-'))
+            )
+            OR EXISTS (
+                SELECT
+                    1
+                FROM @tipoDeduccion AS TD
+                WHERE (NOT EXISTS (
+                    SELECT
+                        1
+                    FROM @tipoMovimiento AS TM
+                    WHERE (TM.Nombre = TD.TipoMovimiento)
+                ))
+            )
+            OR EXISTS (
+                SELECT
+                    1
+                FROM @usuario AS U
+                WHERE (U.Tipo NOT IN ('administrador', 'empleado'))
+            )
+        )
+        BEGIN
+            INSERT INTO dbo.DBError (
+                Mensaje
+                , Severidad
+                , Estado
+            )
+            VALUES (
+                'Datos.xml no cumple el contrato oficial esperado'
+                , 16
+                , 1
+            );
+
+            SET @outResultCode = 50008;
+            RETURN;
+        END
+
         BEGIN TRANSACTION;
 
         INSERT INTO dbo.TipoDocIdentidad (

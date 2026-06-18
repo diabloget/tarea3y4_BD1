@@ -179,32 +179,40 @@ end
 
 # Ruta POST para cargar el catálogo base (datosCarga.xml)
 post '/cargar-datos' do
-  if params[:archivo_datos] && params[:archivo_datos][:tempfile]
-    xml_content = params[:archivo_datos][:tempfile].read
-    resultado = Empleado.procesar_datos_xml(xml_content)
+  begin
+    if params[:archivo_datos] && params[:archivo_datos][:tempfile]
+      xml_content = params[:archivo_datos][:tempfile].read
+      resultado = Empleado.procesar_datos_xml(xml_content)
 
-    if resultado == 0
-      "<span style='color: #2d5a4e; font-weight: bold;'>¡Catálogos base cargados exitosamente!</span>"
+      if resultado == 0
+        "<span style='color: #2d5a4e; font-weight: bold;'>¡Catálogos base cargados exitosamente!</span>"
+      else
+        "<span style='color: #9b3a3a; font-weight: bold;'>Error cargando catálogos. (Código: #{resultado})</span>"
+      end
     else
-      "<span style='color: #9b3a3a; font-weight: bold;'>Error cargando catálogos. (Código: #{resultado})</span>"
+      "<span style='color: #9b3a3a;'>No se recibió ningún archivo válido.</span>"
     end
-  else
-    "<span style='color: #9b3a3a;'>No se recibió ningún archivo válido.</span>"
+  rescue => e
+    "<span style='color: #9b3a3a; font-weight: bold;'>Error cargando catálogos. #{h(e.message)}</span>"
   end
 end
 
 post '/cargar-xml' do
-  if params[:archivo_xml] && params[:archivo_xml][:tempfile]
-    xml_content = params[:archivo_xml][:tempfile].read
-    resultado = Empleado.procesar_xml(xml_content)
+  begin
+    if params[:archivo_xml] && params[:archivo_xml][:tempfile]
+      xml_content = params[:archivo_xml][:tempfile].read
+      resultado = Empleado.procesar_xml(xml_content)
 
-    if resultado == 0
-      "<span style='color: #2d5a4e; font-weight: bold;'>¡Simulación ejecutada exitosamente!</span>"
+      if resultado == 0
+        "<span style='color: #2d5a4e; font-weight: bold;'>¡Simulación ejecutada exitosamente!</span>"
+      else
+        "<span style='color: #9b3a3a; font-weight: bold;'>Error procesando XML (Código: #{resultado}).</span>"
+      end
     else
-      "<span style='color: #9b3a3a; font-weight: bold;'>Error procesando XML (Código: #{resultado}).</span>"
+      "<span style='color: #9b3a3a;'>No se recibió ningún archivo válido.</span>"
     end
-  else
-    "<span style='color: #9b3a3a;'>No se recibió ningún archivo válido.</span>"
+  rescue => e
+    "<span style='color: #9b3a3a; font-weight: bold;'>Error procesando XML. #{h(e.message)}</span>"
   end
 end
 

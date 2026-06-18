@@ -72,9 +72,26 @@ module Database
       SET ANSI_PADDING            ON;
       SET CONCAT_NULL_YIELDS_NULL ON;
       DECLARE @Res INT;
-      EXEC dbo.#{proc_name}
-          @inXmlData      = '#{xml_seguro}',
-          @outResultCode  = @Res OUTPUT;
+      DECLARE @XmlData XML;
+      BEGIN TRY
+          SET @XmlData = CAST('#{xml_seguro}' AS XML);
+          EXEC dbo.#{proc_name}
+              @inXmlData      = @XmlData,
+              @outResultCode  = @Res OUTPUT;
+      END TRY
+      BEGIN CATCH
+          INSERT INTO dbo.DBError (
+              Mensaje,
+              Severidad,
+              Estado
+          )
+          VALUES (
+              ERROR_MESSAGE(),
+              ERROR_SEVERITY(),
+              ERROR_STATE()
+          );
+          SET @Res = 50008;
+      END CATCH;
       SELECT @Res AS Resultado;
     SQL
 
