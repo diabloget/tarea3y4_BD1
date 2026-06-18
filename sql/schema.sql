@@ -1,4 +1,4 @@
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'PlanillaObrera')
+IF NOT EXISTS (SELECT 1 FROM sys.databases WHERE name = 'PlanillaObrera')
 BEGIN
     CREATE DATABASE PlanillaObrera;
 END
@@ -13,7 +13,7 @@ GO
 -- DESCRIPCIÓN: Catálogo estático de los tipos de documentos
 --              de identificación válidos (Cédula, DIMEX, etc.).
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TipoDocIdentidad')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TipoDocIdentidad')
 CREATE TABLE dbo.TipoDocIdentidad (
     Id     INT          NOT NULL,
     Nombre VARCHAR(100) NOT NULL,
@@ -26,7 +26,7 @@ GO
 -- DESCRIPCIÓN: Almacena los diferentes puestos laborales con su
 --              respectivo salario base por hora para los cálculos.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Puesto')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Puesto')
 CREATE TABLE dbo.Puesto (
     Id           INT          NOT NULL IDENTITY(1,1),
     Nombre       VARCHAR(100) NOT NULL,
@@ -41,7 +41,7 @@ GO
 -- DESCRIPCIÓN: Catálogo de los departamentos u áreas operativas
 --              en las que se organiza la empresa.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Departamento')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Departamento')
 CREATE TABLE dbo.Departamento (
     Id     INT          NOT NULL,
     Nombre VARCHAR(100) NOT NULL,
@@ -54,7 +54,7 @@ GO
 -- DESCRIPCIÓN: Define los tipos de turnos de trabajo existentes
 --              con sus respectivas horas de inicio y fin.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TipoJornada')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TipoJornada')
 CREATE TABLE dbo.TipoJornada (
     Id         INT          NOT NULL,
     Nombre     VARCHAR(100) NOT NULL,
@@ -69,7 +69,7 @@ GO
 -- DESCRIPCIÓN: Catálogo que rige si un movimiento de planilla
 --              suma (+) o resta (-) al salario del empleado.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TipoMovimiento')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TipoMovimiento')
 CREATE TABLE dbo.TipoMovimiento (
     Id     INT          NOT NULL,
     Nombre VARCHAR(100) NOT NULL,
@@ -84,7 +84,7 @@ GO
 -- DESCRIPCIÓN: Configura las deducciones (CCSS, renta, etc.),
 --              su valor, si es fija/porcentual u obligatoria.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TipoDeduccion')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TipoDeduccion')
 CREATE TABLE dbo.TipoDeduccion (
     Id               INT           NOT NULL,
     Nombre           VARCHAR(100)  NOT NULL,
@@ -103,7 +103,7 @@ GO
 -- DESCRIPCIÓN: Catálogo con la clasificación de eventos para el
 --              control de auditoría en la bitácora del sistema.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'TipoEvento')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TipoEvento')
 CREATE TABLE dbo.TipoEvento (
     Id     INT          NOT NULL,
     Nombre VARCHAR(100) NOT NULL,
@@ -116,7 +116,7 @@ GO
 -- DESCRIPCIÓN: Registro de los días festivos del año para el
 --              cálculo correcto del pago de horas dobles.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Feriado')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Feriado')
 CREATE TABLE dbo.Feriado (
     Id     INT          NOT NULL,
     Nombre VARCHAR(150) NOT NULL,
@@ -131,7 +131,7 @@ GO
 -- DESCRIPCIÓN: Almacena las credenciales de acceso al sistema,
 --              restringiendo el rol (administrador o empleado).
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Usuario')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Usuario')
 CREATE TABLE dbo.Usuario (
     Id           INT          NOT NULL IDENTITY(1,1),
     Username     VARCHAR(100) NOT NULL,
@@ -152,7 +152,7 @@ GO
 -- DESCRIPCIÓN: Contiene la información maestro y personal de los
 --              colaboradores activos e inactivos de la empresa.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Empleado')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Empleado')
 CREATE TABLE dbo.Empleado (
     Id                INT          NOT NULL IDENTITY(1,1),
     IdPuesto          INT          NOT NULL,
@@ -182,7 +182,7 @@ GO
 -- DESCRIPCIÓN: Vincula de forma histórica las deducciones voluntarias
 --              o fijas aplicadas a cada empleado específico.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DeduccionEmpleado')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'DeduccionEmpleado')
 CREATE TABLE dbo.DeduccionEmpleado (
     Id              INT           NOT NULL IDENTITY(1,1),
     IdEmpleado      INT           NOT NULL,
@@ -203,7 +203,7 @@ GO
 -- DESCRIPCIÓN: Delimita los rangos de fechas de los meses comerciales
 --              y el conteo de jueves para cierres mensuales.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Mes')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Mes')
 CREATE TABLE dbo.Mes (
     Id          INT     NOT NULL IDENTITY(1,1),
     FechaInicio DATE    NOT NULL,
@@ -218,7 +218,7 @@ GO
 -- DESCRIPCIÓN: Divide los meses en periodos semanales de pago,
 --              que es la base operativa de la planilla obrera.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Semana')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Semana')
 CREATE TABLE dbo.Semana (
     Id          INT  NOT NULL IDENTITY(1,1),
     IdMes       INT  NOT NULL,
@@ -234,7 +234,7 @@ GO
 -- DESCRIPCIÓN: Asocia la jornada que el empleado tiene asignada
 --              para cumplir durante una semana específica.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'HorarioJornada')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'HorarioJornada')
 CREATE TABLE dbo.HorarioJornada (
     Id            INT NOT NULL IDENTITY(1,1),
     IdEmpleado    INT NOT NULL,
@@ -256,7 +256,7 @@ GO
 -- DESCRIPCIÓN: Captura los timbrajes reales de entrada y salida
 --              registrados diariamente por los obreros.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MarcaAsistencia')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'MarcaAsistencia')
 CREATE TABLE dbo.MarcaAsistencia (
     Id               INT      NOT NULL IDENTITY(1,1),
     IdEmpleado       INT      NOT NULL,
@@ -277,7 +277,7 @@ GO
 -- DESCRIPCIÓN: Acumula los cálculos procesados de salarios brutos,
 --              netos y distribución de horas semanales por obrero.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PlanillaSemanal')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PlanillaSemanal')
 CREATE TABLE dbo.PlanillaSemanal (
     Id               INT           NOT NULL IDENTITY(1,1),
     IdEmpleado       INT           NOT NULL,
@@ -302,7 +302,7 @@ GO
 -- DESCRIPCIÓN: Consolida la sumatoria de ingresos y egresos de un
 --              empleado a lo largo de un mes para reportes estatales.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'PlanillaMensual')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PlanillaMensual')
 CREATE TABLE dbo.PlanillaMensual (
     Id               INT           NOT NULL IDENTITY(1,1),
     IdEmpleado       INT           NOT NULL,
@@ -324,7 +324,7 @@ GO
 -- DESCRIPCIÓN: Detalla el desglose total cobrado por cada tipo
 --              de deducción en el cierre de la planilla mensual.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DeduccionXMes')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'DeduccionXMes')
 CREATE TABLE dbo.DeduccionXMes (
     Id                INT           NOT NULL IDENTITY(1,1),
     IdPlanillaMensual INT           NOT NULL,
@@ -343,7 +343,7 @@ GO
 -- DESCRIPCIÓN: Encabezado de los entregables o recibos oficiales
 --              generados al procesar los pagos de la planilla.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Comprobante')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Comprobante')
 CREATE TABLE dbo.Comprobante (
     Id                INT         NOT NULL IDENTITY(1,1),
     IdPlanillaSemanal INT         NOT NULL,
@@ -360,7 +360,7 @@ GO
 -- DESCRIPCIÓN: Tabla intermedia que asocia las marcas de asistencia
 --              específicas justificadas en un comprobante dado.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'ComprobanteHora')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ComprobanteHora')
 CREATE TABLE dbo.ComprobanteHora (
     Id                INT NOT NULL IDENTITY(1,1),
     IdComprobante     INT NOT NULL,
@@ -379,7 +379,7 @@ GO
 -- DESCRIPCIÓN: Libro de movimientos detallados por comprobante,
 --              calculando saldos brutos acumulados secuenciales.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MovPlanilla')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'MovPlanilla')
 CREATE TABLE dbo.MovPlanilla (
     Id               INT           NOT NULL IDENTITY(1,1),
     IdComprobante    INT           NOT NULL,
@@ -398,7 +398,7 @@ GO
 -- DESCRIPCIÓN: Registro de seguridad y auditoría de transacciones,
 --              almacenando usuarios, IPs y marcas de tiempo.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'BitacoraEvento')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'BitacoraEvento')
 CREATE TABLE dbo.BitacoraEvento (
     Id           INT          NOT NULL IDENTITY(1,1),
     IdTipoEvento INT          NOT NULL,
@@ -418,7 +418,7 @@ GO
 -- DESCRIPCIÓN: Captura excepciones controladas en bloques TRY/CATCH
 --              dentro de los Stored Procedures para depuración.
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'DBError')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'DBError')
 CREATE TABLE dbo.DBError (
     Id        INT          NOT NULL IDENTITY(1,1),
     Mensaje   VARCHAR(MAX) NOT NULL,
@@ -429,11 +429,19 @@ CREATE TABLE dbo.DBError (
 );
 GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Error')
+CREATE TABLE dbo.Error (
+    Codigo      INT          NOT NULL,
+    Descripcion VARCHAR(255) NOT NULL,
+    CONSTRAINT PK_Error PRIMARY KEY (Codigo)
+);
+GO
+
 
 
 -- TABLA: MovimientoAsistencia
 
-IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MovimientoAsistencia')
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'MovimientoAsistencia')
 BEGIN
     CREATE TABLE dbo.MovimientoAsistencia (
         Id                INT           NOT NULL IDENTITY(1,1),
@@ -544,9 +552,4 @@ GO
 IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE Username = 'admin')
   INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
   VALUES ('admin', 'admin123', 'administrador');
-GO
-
-IF NOT EXISTS (SELECT 1 FROM dbo.Usuario WHERE Username = 'obrero')
-  INSERT INTO dbo.Usuario (Username, PasswordHash, Tipo)
-  VALUES ('obrero', 'obrero123', 'empleado');
 GO

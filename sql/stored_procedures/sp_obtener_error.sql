@@ -16,13 +16,26 @@ BEGIN
 
     SET @outResultCode = 0;
 
-    SELECT
-        DE.Id
-        , DE.Mensaje
-        , DE.Severidad
-        , DE.Estado
-        , DE.FechaHora
-    FROM dbo.DBError AS DE
-    WHERE (DE.Id = @inCodigo);
+    BEGIN TRY
+        SELECT
+            ER.Codigo
+            , ER.Descripcion
+        FROM dbo.Error AS ER
+        WHERE (ER.Codigo = @inCodigo);
+    END TRY
+    BEGIN CATCH
+        INSERT INTO dbo.DBError (
+            Mensaje
+            , Severidad
+            , Estado
+        )
+        VALUES (
+            ERROR_MESSAGE()
+            , ERROR_SEVERITY()
+            , ERROR_STATE()
+        );
+
+        SET @outResultCode = 50008;
+    END CATCH
 END
 GO

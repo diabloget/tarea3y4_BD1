@@ -73,18 +73,9 @@ BEGIN
         , Tipo VARCHAR(50) NOT NULL
     );
 
-    DECLARE @empleado TABLE (
-        ValorDocumento VARCHAR(50) NOT NULL PRIMARY KEY
-        , Nombre VARCHAR(100) NOT NULL
-        , Puesto VARCHAR(100) NOT NULL
-        , FechaContratacion DATE NOT NULL
-    );
-
-    DECLARE @movimientoHistorico TABLE (
-        ValorDocumento VARCHAR(50) NOT NULL
-        , TipoMovimiento VARCHAR(100) NOT NULL
-        , Fecha DATE NOT NULL
-        , Monto DECIMAL(14,2) NOT NULL
+    DECLARE @error TABLE (
+        Codigo INT NOT NULL PRIMARY KEY
+        , Descripcion VARCHAR(255) NOT NULL
     );
 
     SET @outResultCode = 0;
@@ -135,14 +126,12 @@ BEGIN
     SELECT
         X.Item.value('@Id', 'INT') AS Id
         , X.Item.value('@Nombre', 'VARCHAR(100)') AS Nombre
-        , CASE X.Item.value('@TipoAccion', 'VARCHAR(50)')
-            WHEN 'Credito' THEN '+'
-            WHEN 'Debito' THEN '-'
-            WHEN '+' THEN '+'
-            WHEN '-' THEN '-'
+        , CASE X.Item.value('@Accion', 'VARCHAR(50)')
+            WHEN 'C' THEN '+'
+            WHEN 'D' THEN '-'
             ELSE '+'
         END AS Accion
-    FROM @inXmlData.nodes('/Datos/TiposMovimientos/TipoMovimiento') AS X(Item);
+    FROM @inXmlData.nodes('/Datos/TiposMovimiento/TipoMovimiento') AS X(Item);
 
     INSERT INTO @tipoDeduccion (
         Id
@@ -167,7 +156,7 @@ BEGIN
     )
     SELECT
         X.Item.value('@Nombre', 'VARCHAR(100)') AS Nombre
-        , X.Item.value('@SalarioxHora', 'MONEY') AS SalarioXHora
+        , X.Item.value('@SalarioXHora', 'MONEY') AS SalarioXHora
     FROM @inXmlData.nodes('/Datos/Puestos/Puesto') AS X(Item);
 
     INSERT INTO @tipoJornada (
@@ -189,39 +178,23 @@ BEGIN
         , Tipo
     )
     SELECT
-        X.Item.value('@Nombre', 'VARCHAR(100)') AS Username
-        , X.Item.value('@Pass', 'VARCHAR(256)') AS PasswordHash
-        , CASE X.Item.value('@Id', 'INT')
-            WHEN 1 THEN 'administrador'
-            ELSE 'empleado'
+        X.Item.value('@Username', 'VARCHAR(100)') AS Username
+        , X.Item.value('@PasswordHash', 'VARCHAR(256)') AS PasswordHash
+        , CASE X.Item.value('@Tipo', 'VARCHAR(50)')
+            WHEN '1' THEN 'administrador'
+            WHEN '2' THEN 'empleado'
+            ELSE X.Item.value('@Tipo', 'VARCHAR(50)')
         END AS Tipo
-    FROM @inXmlData.nodes('/Datos/Usuarios/usuario') AS X(Item);
+    FROM @inXmlData.nodes('/Datos/Usuarios/Usuario') AS X(Item);
 
-    INSERT INTO @empleado (
-        ValorDocumento
-        , Nombre
-        , Puesto
-        , FechaContratacion
+    INSERT INTO @error (
+        Codigo
+        , Descripcion
     )
     SELECT
-        X.Item.value('@ValorDocumentoIdentidad', 'VARCHAR(50)') AS ValorDocumento
-        , X.Item.value('@Nombre', 'VARCHAR(100)') AS Nombre
-        , X.Item.value('@Puesto', 'VARCHAR(100)') AS Puesto
-        , X.Item.value('@FechaContratacion', 'DATE') AS FechaContratacion
-    FROM @inXmlData.nodes('/Datos/Empleados/empleado') AS X(Item);
-
-    INSERT INTO @movimientoHistorico (
-        ValorDocumento
-        , TipoMovimiento
-        , Fecha
-        , Monto
-    )
-    SELECT
-        X.Item.value('@ValorDocId', 'VARCHAR(50)') AS ValorDocumento
-        , X.Item.value('@IdTipoMovimiento', 'VARCHAR(100)') AS TipoMovimiento
-        , X.Item.value('@Fecha', 'DATE') AS Fecha
-        , X.Item.value('@Monto', 'DECIMAL(14,2)') AS Monto
-    FROM @inXmlData.nodes('/Datos/Movimientos/movimiento') AS X(Item);
+        X.Item.value('@Codigo', 'INT') AS Codigo
+        , X.Item.value('@Descripcion', 'VARCHAR(255)') AS Descripcion
+    FROM @inXmlData.nodes('/Datos/Error/error') AS X(Item);
 
     BEGIN TRY
         BEGIN TRANSACTION;
@@ -256,6 +229,13 @@ BEGIN
             WHERE (DEP.Id = D.Id)
         ));
 
+        UPDATE TE
+        SET
+            TE.Nombre = TET.Nombre
+        FROM dbo.TipoEvento AS TE
+        INNER JOIN @tipoEvento AS TET
+            ON TET.Id = TE.Id;
+
         INSERT INTO dbo.TipoEvento (
             Id
             , Nombre
@@ -270,6 +250,14 @@ BEGIN
             FROM dbo.TipoEvento AS TEE
             WHERE (TEE.Id = TE.Id)
         ));
+
+        UPDATE FE
+        SET
+            FE.Nombre = F.Nombre
+            , FE.Fecha = F.Fecha
+        FROM dbo.Feriado AS FE
+        INNER JOIN @feriado AS F
+            ON F.Id = FE.Id;
 
         INSERT INTO dbo.Feriado (
             Id
@@ -288,6 +276,14 @@ BEGIN
             WHERE (FE.Id = F.Id)
         ));
 
+        UPDATE TMO
+        SET
+            TMO.Nombre = TM.Nombre
+            , TMO.Accion = TM.Accion
+        FROM dbo.TipoMovimiento AS TMO
+        INNER JOIN @tipoMovimiento AS TM
+            ON TM.Id = TMO.Id;
+
         INSERT INTO dbo.TipoMovimiento (
             Id
             , Nombre
@@ -304,6 +300,19 @@ BEGIN
             FROM dbo.TipoMovimiento AS TMO
             WHERE (TMO.Id = TM.Id)
         ));
+
+        UPDATE TDE
+        SET
+            TDE.Nombre = TD.Nombre
+            , TDE.EsObligatoria = TD.EsObligatoria
+            , TDE.EsPorcentual = TD.EsPorcentual
+            , TDE.Valor = TD.Valor
+            , TDE.IdTipoMovimiento = TM.Id
+        FROM dbo.TipoDeduccion AS TDE
+        INNER JOIN @tipoDeduccion AS TD
+            ON TD.Id = TDE.Id
+        INNER JOIN dbo.TipoMovimiento AS TM
+            ON TM.Nombre = TD.TipoMovimiento;
 
         INSERT INTO dbo.TipoDeduccion (
             Id
@@ -330,6 +339,13 @@ BEGIN
             WHERE (TDE.Id = TD.Id)
         ));
 
+        UPDATE PU
+        SET
+            PU.SalarioXHora = P.SalarioXHora
+        FROM dbo.Puesto AS PU
+        INNER JOIN @puesto AS P
+            ON P.Nombre = PU.Nombre;
+
         INSERT INTO dbo.Puesto (
             Nombre
             , SalarioXHora
@@ -344,6 +360,15 @@ BEGIN
             FROM dbo.Puesto AS PU
             WHERE (PU.Nombre = P.Nombre)
         ));
+
+        UPDATE TJO
+        SET
+            TJO.Nombre = TJ.Nombre
+            , TJO.HoraInicio = TJ.HoraInicio
+            , TJO.HoraFin = TJ.HoraFin
+        FROM dbo.TipoJornada AS TJO
+        INNER JOIN @tipoJornada AS TJ
+            ON TJ.Id = TJO.Id;
 
         INSERT INTO dbo.TipoJornada (
             Id
@@ -364,6 +389,14 @@ BEGIN
             WHERE (TJO.Id = TJ.Id)
         ));
 
+        UPDATE US
+        SET
+            US.PasswordHash = U.PasswordHash
+            , US.Tipo = U.Tipo
+        FROM dbo.Usuario AS US
+        INNER JOIN @usuario AS U
+            ON U.Username = US.Username;
+
         INSERT INTO dbo.Usuario (
             Username
             , PasswordHash
@@ -381,86 +414,26 @@ BEGIN
             WHERE (US.Username = U.Username)
         ));
 
-        INSERT INTO dbo.Usuario (
-            Username
-            , PasswordHash
-            , Tipo
-        )
-        SELECT
-            E.ValorDocumento
-            , E.ValorDocumento
-            , 'empleado'
-        FROM @empleado AS E
-        WHERE (NOT EXISTS (
-            SELECT
-                1
-            FROM dbo.Usuario AS U
-            WHERE (U.Username = E.ValorDocumento)
-        ));
+        UPDATE ER
+        SET
+            ER.Descripcion = E.Descripcion
+        FROM dbo.Error AS ER
+        INNER JOIN @error AS E
+            ON E.Codigo = ER.Codigo;
 
-        INSERT INTO dbo.Empleado (
-            IdPuesto
-            , IdDepartamento
-            , IdTipoDocumento
-            , IdUsuario
-            , ValorDocumento
-            , Nombre
-            , CuentaBancaria
-            , FechaContratacion
-            , Activo
+        INSERT INTO dbo.Error (
+            Codigo
+            , Descripcion
         )
         SELECT
-            P.Id
-            , D.Id
-            , TD.Id
-            , U.Id
-            , E.ValorDocumento
-            , E.Nombre
-            , E.ValorDocumento
-            , E.FechaContratacion
-            , 1
-        FROM @empleado AS E
-        INNER JOIN dbo.Puesto AS P
-            ON P.Nombre = E.Puesto
-        CROSS JOIN @departamento AS D
-        CROSS JOIN @tipoDocumento AS TD
-        INNER JOIN dbo.Usuario AS U
-            ON U.Username = E.ValorDocumento
+            E.Codigo
+            , E.Descripcion
+        FROM @error AS E
         WHERE (NOT EXISTS (
             SELECT
                 1
-            FROM dbo.Empleado AS EM
-            WHERE (EM.ValorDocumento = E.ValorDocumento)
-                OR (EM.Nombre = E.Nombre)
-        ));
-
-        INSERT INTO dbo.MovimientoAsistencia (
-            IdMarcaAsistencia
-            , IdTipoMovimiento
-            , CantidadHoras
-            , Monto
-        )
-        SELECT
-            MA.Id
-            , TM.Id
-            , 0
-            , MH.Monto
-        FROM @movimientoHistorico AS MH
-        INNER JOIN dbo.Empleado AS E
-            ON E.ValorDocumento = MH.ValorDocumento
-        INNER JOIN dbo.TipoMovimiento AS TM
-            ON TM.Nombre = MH.TipoMovimiento
-        INNER JOIN dbo.MarcaAsistencia AS MA
-            ON MA.IdEmpleado = E.Id
-            AND MA.Fecha = MH.Fecha
-        WHERE (NOT EXISTS (
-            SELECT
-                1
-            FROM dbo.MovimientoAsistencia AS MV
-            WHERE (MV.IdMarcaAsistencia = MA.Id)
-                AND (MV.IdTipoMovimiento = TM.Id)
-                AND (MV.CantidadHoras = 0)
-                AND (MV.Monto = MH.Monto)
+            FROM dbo.Error AS ER
+            WHERE (ER.Codigo = E.Codigo)
         ));
 
         COMMIT TRANSACTION;
